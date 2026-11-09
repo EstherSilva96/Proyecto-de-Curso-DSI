@@ -1,0 +1,152 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    background-color: #f8f8f8;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh; /* Ensure it takes full viewport height */
+}
+
+.header-bar {
+    width: 100%;
+    height: 80px; /* Adjust height as needed */
+    background-color: #cb2b2b; /* Red color from your image */
+    position: absolute;
+    top: 0;
+    left: 0;
+}
+
+.login-container {
+    background-color: #ffffff;
+    border-radius: 8px;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+    display: flex;
+    align-items: center;
+    padding: 40px;
+    margin-top: 100px; /* Space from the header bar */
+    max-width: 900px; /* Adjust as needed */
+    width: 100%;
+    position: relative; /* For z-index to bring it above the header bar */
+    z-index: 1;
+}
+
+.logo-section {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    padding-right: 40px; /* Space between logo and form */
+    border-right: 1px solid #eee; /* Optional separator line */
+}
+
+    .logo-section img {
+        max-width: 250px; /* Adjust logo size */
+        height: auto;
+        border: 2px solid #ccc; /* Border around the logo as in the image */
+        border-radius: 50%; /* Make it circular if your logo allows */
+        padding: 10px;
+    }
+
+.login-form-section {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding-left: 40px; /* Space between logo and form */
+}
+
+.user-icon-large {
+    font-size: 50px; /* Adjust size of the large user icon */
+    color: #2a2a2a;
+    margin-bottom: 20px;
+}
+
+.login-form {
+    width: 100%;
+    max-width: 350px; /* Max width for the form inputs */
+}
+
+.input-group {
+    margin-bottom: 20px;
+}
+
+    .input-group label {
+        display: block;
+        margin-bottom: 8px;
+        font-weight: bold;
+        color: #555;
+    }
+
+    .input-group input[type="text"],
+    .input-group input[type="password"] {
+        width: calc(100% - 20px); /* Account for padding */
+        padding: 12px 10px;
+        border: 1px solid #ccc;
+        border-radius: 5px;
+        font-size: 16px;
+        box-sizing: border-box; /* Include padding in width */
+    }
+
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+    .password-wrapper input {
+        padding-right: 40px; /* Space for the eye icon */
+    }
+
+.toggle-password {
+    position: absolute;
+    right: 10px;
+    cursor: pointer;
+    color: #888;
+}
+
+.login-button {
+    width: 100%;
+    padding: 15px;
+    background-color: #cb2b2b; /* Red button color */
+    color: white;
+    border: none;
+    border-radius: 5px;
+    font-size: 18px;
+    font-weight: bold;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+    .login-button:hover {
+        background-color: #af2222; /* Darker red on hover */
+    }
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .login-container {
+        flex-direction: column;
+        padding: 20px;
+        margin-top: 50px;
+    }
+
+    .logo-section {
+        border-right: none;
+        border-bottom: 1px solid #eee;
+        padding-right: 0;
+        padding-bottom: 20px;
+        margin-bottom: 20px;
+    }
+
+    .login-form-section {
+        padding-left: 0;
+    }
+}
+
+footer {
+    position: absolute;
+    bottom: 20px; /* o la distancia que prefieras del borde inferior */
+    width: 100%;
+    text-align: center;
+    color: #eee; /* Ajusta el color del texto del footer */
+}
