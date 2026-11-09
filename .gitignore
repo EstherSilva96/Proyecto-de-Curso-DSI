@@ -3,3 +3,11 @@
 ################################################################################
 
 /.vs
+
+# Archivos generados y configuración local
+.vs/
+[Bb]in/
+[Oo]bj/
+packages/
+*.user
+*.suo
