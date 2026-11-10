@@ -1,96 +1,82 @@
 ﻿using CapaEntidad;
 using CapaNegocio;
 using ClosedXML.Excel;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Globalization;
 using System.IO;
+using System.Linq;
+using System.Web;
 using System.Web.Mvc;
 
 namespace ExcProy.Controllers
 {
     public class HomeController : Controller
     {
-        // Vistas
-public ActionResult Index()
-{
-    return Pantalla("Dashboard");
-}
+        //Vistas
+        public ActionResult Index()
+        {
+            return View();
+        }
+        public ActionResult Inventario()
+        {
+            return View();
+        }
+        public ActionResult Ventas()
+        {
+            return View();
+        }
+        public ActionResult Reportes()
+        {
+            return View();
+        }
+        public ActionResult Usuarios()
+        {
+            return View();
+        }
+        public ActionResult Productos()
+        {
+            return View();
+        }
+        public ActionResult Proveedores()
+        {
+            return View();
+        }
+        //Usuarios
+        [HttpGet]
+        public JsonResult ListarUsuarios()
+        {
+            List<Usuario> lista = new List<Usuario>();
+            lista = new CN_Usuario().Listar();
 
-public ActionResult Inventario()
-{
-    return Pantalla("Inventario");
-}
+            return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
+        }
+        [HttpPost]
+        public JsonResult GuardarUsuario(Usuario obj)
+        {
+            object result;
+            string mensaje = string.Empty;
+            if (obj.idUsuario == 0)
+            {
+                result = new CN_Usuario().Registrar(obj, out mensaje);
+            }
+            else
+            {
+                result = new CN_Usuario().Editar(obj, out mensaje);
+            }
+            return Json(new { resultado = result, mensaje = mensaje }, JsonRequestBehavior.AllowGet);
+        }
+        [HttpPost]
+        public JsonResult EliminarUsuario(int id)
+        {
+            bool result = false;
+            string mensaje = string.Empty;
 
-public ActionResult Ventas()
-{
-    return Pantalla("Ventas");
-}
+            result = new CN_Usuario().Eliminar(id, out mensaje);
 
-public ActionResult Reportes()
-{
-    return Pantalla("Reportes");
-}
-
-public ActionResult Usuarios()
-{
-    return Pantalla("Usuarios");
-}
-
-public ActionResult Productos()
-{
-    return Pantalla("Productos");
-}
-
-public ActionResult Proveedores()
-{
-    return Pantalla("Proveedores");
-}
-
-// titulo
-private ActionResult Pantalla(string titulo)
-{
-    ViewBag.Title = titulo;
-    return View();
-}
-// Usuarios
-[HttpGet]
-public JsonResult ListarUsuarios()
-{
-    List<Usuario> lista = new List<Usuario>();
-    lista = new CN_Usuario().Listar();
-
-    return Json(new { data = lista }, JsonRequestBehavior.AllowGet);
-}
-
-[HttpPost]
-public JsonResult GuardarUsuario(Usuario obj)
-{
-    object result;
-    string mensaje = string.Empty;
-
-    if (obj.idUsuario == 0)
-    {
-        result = new CN_Usuario().Registrar(obj, out mensaje);
-    }
-    else
-    {
-        result = new CN_Usuario().Editar(obj, out mensaje);
-    }
-
-    return Json(new { resultado = result, mensaje = mensaje }, JsonRequestBehavior.AllowGet);
-}
-
-[HttpPost]
-public JsonResult EliminarUsuario(int id)
-{
-    bool result = false;
-    string mensaje = string.Empty;
-
-    result = new CN_Usuario().Eliminar(id, out mensaje);
-
-    return Json(new { resultado = result, mensaje = mensaje }, JsonRequestBehavior.AllowGet);
-}
+            return Json(new { resultado = result, mensaje = mensaje }, JsonRequestBehavior.AllowGet);
+        }
         //Proveedores
         [HttpGet]
         public JsonResult ListarProveedores()
