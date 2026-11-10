@@ -3,6 +3,7 @@
 ################################################################################
 
 /.vs
+
 # Archivos temporales y configuraciones personales
 *.rsuser
 *.suo
@@ -16,3 +17,4 @@
 [Oo]bj/
 .vs/
 [Tt]est[Rr]esult*/
+packages/
