@@ -3,3 +3,16 @@
 ################################################################################
 
 /.vs
+# Archivos temporales y configuraciones personales
+*.rsuser
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+*.userprefs
+
+# Carpetas y archivos generados
+[Bb]in/
+[Oo]bj/
+.vs/
+[Tt]est[Rr]esult*/

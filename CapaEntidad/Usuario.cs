@@ -1,0 +1,13 @@
+﻿namespace CapaEntidad
+{
+    public class Usuario
+    {
+        public int idUsuario { get; set; }
+        public string usuario { get; set; }
+        public string nombres { get; set; }
+        public string apellidos { get; set; }
+        public string clave { get; set; }
+        public string rol { get; set; }
+        public bool estado { get; set; }
+    }
+}
