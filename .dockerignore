@@ -1,0 +1,21 @@
+#Excluye el Historial de Git
+.git 
+
+# Archivos locales de Visual Studio
+**/.vs
+**/*.user
+**/*.suo
+
+# Resultados de compilaciones anteriores
+**/bin
+**/obj
+
+# Paquetes descartados en tu pc
+**/packages
+
+# Publicaciones anteriores
+**/publish
+
+# Archivos locales de variables de entorno
+**/.env
+**/.env.*
