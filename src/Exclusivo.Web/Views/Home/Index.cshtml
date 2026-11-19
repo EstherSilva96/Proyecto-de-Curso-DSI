@@ -1,0 +1,60 @@
+﻿@model DashboardViewModel
+@{
+    ViewData["Title"] = "Panel de control";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h1 class="h3">Panel de control</h1><p class="text-muted mb-0">Resumen de la operación de Exclusivo</p></div>
+    <a class="btn btn-dark" asp-controller="Sales" asp-action="Create">Nueva venta</a>
+</div>
+
+<div class="row g-3">
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Ventas hoy</div><div class="kpi">@Model.VentasHoy</div><small>C$ @Model.MontoHoy.ToString("N2")</small></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Ventas del mes</div><div class="kpi">C$ @Model.MontoMes.ToString("N2")</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Ganancia bruta</div><div class="kpi">C$ @Model.GananciaBruta.ToString("N2")</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Productos activos</div><div class="kpi">@Model.TotalProductos</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Valor del inventario</div><div class="kpi">C$ @Model.ValorInventario.ToString("N2")</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Alertas de stock</div><div class="kpi text-warning">@Model.AlertasStock</div></div></div>
+    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Productos agotados</div><div class="kpi text-danger">@Model.Agotados</div></div></div>
+</div>
+
+<div class="row g-3 mt-1">
+    <div class="col-lg-7">
+        <div class="card p-3">
+            <h2 class="h5">Últimas ventas</h2>
+            <table class="table table-sm align-middle">
+                <thead><tr><th>Factura</th><th>Fecha</th><th>Vendedor</th><th class="text-end">Total</th><th>Estado</th></tr></thead>
+                <tbody>
+                    @foreach (var venta in Model.UltimasVentas)
+                    {
+                        <tr>
+                            <td><a asp-controller="Sales" asp-action="Details" asp-route-id="@venta.Id">@venta.NumeroFactura</a></td>
+                            <td>@venta.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                            <td>@venta.Usuario.NombreUsuario</td>
+                            <td class="text-end">C$ @venta.Total.ToString("N2")</td>
+                            <td>@venta.Estado</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+    <div class="col-lg-5">
+        <div class="card p-3">
+            <h2 class="h5">Stock bajo</h2>
+            <table class="table table-sm align-middle">
+                <thead><tr><th>Producto</th><th>Variante</th><th class="text-end">Actual</th><th class="text-end">Mínimo</th></tr></thead>
+                <tbody>
+                    @foreach (var e in Model.StockBajo)
+                    {
+                        <tr>
+                            <td>@e.VarianteProducto.Producto.Nombre</td>
+                            <td>@e.VarianteProducto.Color / @e.VarianteProducto.Talla</td>
+                            <td class="text-end @(e.Cantidad == 0 ? "text-danger fw-bold" : "text-warning")">@e.Cantidad</td>
+                            <td class="text-end">@e.Minimo</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>

@@ -1,0 +1,31 @@
+@model List<Venta>
+@{
+    ViewData["Title"] = "Historial de ventas";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3">Historial de ventas</h1>
+    @if (User.IsInRole("Administrador") || User.IsInRole("Gerente") || User.IsInRole("Vendedor"))
+    {
+        <a class="btn btn-dark" asp-action="Create">Nueva venta</a>
+    }
+</div>
+<div class="card p-3">
+    <table class="table align-middle">
+        <thead><tr><th>Factura</th><th>Fecha</th><th>Cliente</th><th>Vendedor</th><th>Pago</th><th class="text-end">Total</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var v in Model)
+            {
+                <tr>
+                    <td>@v.NumeroFactura</td>
+                    <td>@v.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>@v.Cliente?.Nombre</td>
+                    <td>@v.Usuario.NombreUsuario</td>
+                    <td>@v.MetodoPago</td>
+                    <td class="text-end">C$ @v.Total.ToString("N2")</td>
+                    <td><span class="badge bg-@(v.Estado == "Confirmada" ? "success" : "danger")">@v.Estado</span></td>
+                    <td><a class="btn btn-sm btn-outline-primary" asp-action="Details" asp-route-id="@v.Id">Ver</a></td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

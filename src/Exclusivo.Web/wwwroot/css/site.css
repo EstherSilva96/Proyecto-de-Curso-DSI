@@ -1,0 +1,6 @@
+body { background: #f4f6f8; }
+.card { box-shadow: 0 1px 3px rgba(0,0,0,.08); border: 0; }
+.table thead th { background: #f8f9fa; }
+.badge-rol { font-size: .8rem; }
+.kpi { font-size: 1.8rem; font-weight: 700; }
+.form-label { font-weight: 600; }

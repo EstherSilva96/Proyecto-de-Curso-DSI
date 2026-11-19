@@ -1,0 +1,32 @@
+@model List<Proveedor>
+@{
+    ViewData["Title"] = "Proveedores";
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h1 class="h3">Proveedores</h1>
+    <a class="btn btn-dark" asp-action="Create">Nuevo proveedor</a>
+</div>
+<div class="card p-3">
+    <table class="table align-middle">
+        <thead><tr><th>Organización</th><th>Contacto</th><th>RUC</th><th>Teléfono</th><th>Correo</th><th>Estado</th><th></th></tr></thead>
+        <tbody>
+            @foreach (var p in Model)
+            {
+                <tr>
+                    <td>@p.NombreOrganizacion</td>
+                    <td>@p.Nombres @p.Apellidos</td>
+                    <td>@p.Ruc</td>
+                    <td>@p.Telefono</td>
+                    <td>@p.Correo</td>
+                    <td><span class="badge bg-@(p.Activo ? "success" : "secondary")">@(p.Activo ? "Activo" : "Inactivo")</span></td>
+                    <td class="text-end">
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@p.Id">Editar</a>
+                        <form asp-action="Toggle" asp-route-id="@p.Id" method="post" class="d-inline">
+                            <button class="btn btn-sm btn-outline-secondary" type="submit">@(p.Activo ? "Desactivar" : "Activar")</button>
+                        </form>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

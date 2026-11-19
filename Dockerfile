@@ -1,27 +1,17 @@
-# ETAPA 1: Restaurar, compilar y publicar
-FROM mcr.microsoft.com/dotnet/framework/sdk:4.8-windowsservercore-ltsc2019 AS build
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+WORKDIR /src
 
-SHELL ["cmd", "/S", "/C"]
-
-WORKDIR C:/src
+COPY Exclusivo.sln ./
+COPY src/Exclusivo.Web/Exclusivo.Web.csproj src/Exclusivo.Web/
+COPY tests/Exclusivo.Tests/Exclusivo.Tests.csproj tests/Exclusivo.Tests/
+RUN dotnet restore Exclusivo.sln
 
 COPY . .
+RUN dotnet publish src/Exclusivo.Web/Exclusivo.Web.csproj -c Release -o /app/publish --no-restore /p:UseAppHost=false
 
-RUN nuget restore ExcProy.sln -NonInteractive
-
-RUN msbuild ExcProy\ExcProy.csproj /p:Configuration=Release /p:DeployOnBuild=true /p:DeployDefaultTarget=WebPublish /p:WebPublishMethod=FileSystem /p:PublishUrl=C:\publish /p:DeleteExistingFiles=true
-
-RUN dir C:\publish
-
-# ETAPA 2: Preparar el entorno de ejecucion
-FROM mcr.microsoft.com/dotnet/framework/aspnet:4.8-windowsservercore-ltsc2019
-
-WORKDIR C:/inetpub/wwwroot
-
-RUN powershell -NoProfile -Command "Remove-Item C:\inetpub\wwwroot\* -Recurse -Force"
-
-COPY --from=build C:/publish/ ./
-
-EXPOSE 80
-
-ENTRYPOINT ["C:\\ServiceMonitor.exe", "w3svc"]
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+WORKDIR /app
+EXPOSE 8080
+ENV ASPNETCORE_URLS=http://+:8080
+COPY --from=build /app/publish .
+ENTRYPOINT ["dotnet", "Exclusivo.Web.dll"]

@@ -1,21 +1,13 @@
-#Excluye el Historial de Git
-.git 
-
-# Archivos locales de Visual Studio
-**/.vs
-**/*.user
-**/*.suo
-
-# Resultados de compilaciones anteriores
+.git
+.gitignore
+.vs
+.vscode
 **/bin
 **/obj
-
-# Paquetes descartados en tu pc
 **/packages
-
-# Publicaciones anteriores
-**/publish
-
-# Archivos locales de variables de entorno
+**/PublishProfiles
+**/*.user
+**/*.suo
 **/.env
 **/.env.*
+README.md

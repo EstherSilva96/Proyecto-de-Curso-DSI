@@ -1,0 +1,54 @@
+@model Venta
+@{
+    ViewData["Title"] = "Detalle de venta";
+}
+<h1 class="h3 mb-3">Factura @Model.NumeroFactura</h1>
+<div class="row g-3">
+    <div class="col-md-7">
+        <div class="card p-3">
+            <h2 class="h5">Detalle</h2>
+            <table class="table align-middle">
+                <thead><tr><th>Producto</th><th>Variante</th><th class="text-end">Cant.</th><th class="text-end">Precio</th><th class="text-end">Subtotal</th></tr></thead>
+                <tbody>
+                    @foreach (var d in Model.Detalles)
+                    {
+                        <tr>
+                            <td>@d.VarianteProducto.Producto.Nombre</td>
+                            <td>@d.VarianteProducto.Color / @d.VarianteProducto.Talla</td>
+                            <td class="text-end">@d.Cantidad</td>
+                            <td class="text-end">C$ @d.PrecioUnitario.ToString("N2")</td>
+                            <td class="text-end">C$ @d.Subtotal.ToString("N2")</td>
+                        </tr>
+                    }
+                </tbody>
+                <tfoot>
+                    <tr><th colspan="4" class="text-end">Subtotal</th><th class="text-end">C$ @Model.Subtotal.ToString("N2")</th></tr>
+                    <tr><th colspan="4" class="text-end">Descuento</th><th class="text-end">C$ @Model.Descuento.ToString("N2")</th></tr>
+                    <tr><th colspan="4" class="text-end">Impuesto</th><th class="text-end">C$ @Model.Impuesto.ToString("N2")</th></tr>
+                    <tr><th colspan="4" class="text-end">Total</th><th class="text-end">C$ @Model.Total.ToString("N2")</th></tr>
+                </tfoot>
+            </table>
+        </div>
+    </div>
+    <div class="col-md-5">
+        <div class="card p-3 mb-3">
+            <h2 class="h5">Información</h2>
+            <p><strong>Fecha:</strong> @Model.Fecha.ToString("dd/MM/yyyy HH:mm")</p>
+            <p><strong>Cliente:</strong> @Model.Cliente?.Nombre</p>
+            <p><strong>Vendedor:</strong> @Model.Usuario.NombreUsuario</p>
+            <p><strong>Pago:</strong> @Model.MetodoPago</p>
+            <p><strong>Estado:</strong> @Model.Estado</p>
+        </div>
+        @if (Model.Estado == "Confirmada" && (User.IsInRole("Administrador") || User.IsInRole("Gerente")))
+        {
+            <div class="card p-3">
+                <h2 class="h5">Anular venta</h2>
+                <form asp-action="Anular" asp-route-id="@Model.Id" method="post">
+                    <input name="motivo" class="form-control mb-2" placeholder="Motivo de la anulación" required />
+                    <button class="btn btn-danger" type="submit">Anular y restaurar stock</button>
+                </form>
+            </div>
+        }
+    </div>
+</div>
+<a class="btn btn-secondary mt-3" asp-action="Index">Volver</a>

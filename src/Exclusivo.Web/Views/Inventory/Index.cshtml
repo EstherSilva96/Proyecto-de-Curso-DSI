@@ -1,0 +1,54 @@
+@model List<Existencia>
+@{
+    ViewData["Title"] = "Inventario";
+    var movimientos = (List<MovimientoInventario>)ViewBag.Movimientos;
+}
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <div><h1 class="h3">Inventario</h1><p class="text-muted mb-0">Existencias por variante y almacén</p></div>
+    @if (User.IsInRole("Administrador") || User.IsInRole("Gerente") || User.IsInRole("Inventario"))
+    {
+        <a class="btn btn-dark" asp-action="Create">Registrar movimiento</a>
+    }
+</div>
+<div class="card p-3 mb-4">
+    <table class="table align-middle">
+        <thead><tr><th>Producto</th><th>Variante</th><th>Almacén</th><th class="text-end">Existencia</th><th class="text-end">Mínimo</th><th>Estado</th></tr></thead>
+        <tbody>
+            @foreach (var e in Model)
+            {
+                var alerta = e.Cantidad <= e.Minimo;
+                <tr>
+                    <td>@e.VarianteProducto.Producto.Nombre</td>
+                    <td>@e.VarianteProducto.Color / @e.VarianteProducto.Talla</td>
+                    <td>@e.Almacen.Nombre</td>
+                    <td class="text-end">@e.Cantidad</td>
+                    <td class="text-end">@e.Minimo</td>
+                    <td>
+                        @if (e.Cantidad == 0) { <span class="badge bg-danger">Agotado</span> }
+                        else if (alerta) { <span class="badge bg-warning text-dark">Stock bajo</span> }
+                        else { <span class="badge bg-success">Normal</span> }
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>
+<div class="card p-3">
+    <h2 class="h5">Últimos movimientos</h2>
+    <table class="table table-sm align-middle">
+        <thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th class="text-end">Cantidad</th><th>Motivo</th><th>Documento</th></tr></thead>
+        <tbody>
+            @foreach (var m in movimientos)
+            {
+                <tr>
+                    <td>@m.Fecha.ToString("dd/MM HH:mm")</td>
+                    <td><span class="badge bg-@(m.Tipo == "Entrada" ? "success" : m.Tipo == "Salida" ? "danger" : "info")">@m.Tipo</span></td>
+                    <td>@m.VarianteProducto.Producto.Nombre (@m.VarianteProducto.Color / @m.VarianteProducto.Talla)</td>
+                    <td class="text-end">@m.Cantidad</td>
+                    <td>@m.Motivo</td>
+                    <td>@m.DocumentoReferencia</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+</div>

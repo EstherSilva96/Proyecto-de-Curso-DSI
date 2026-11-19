@@ -1,0 +1,58 @@
+@model VentaCreateViewModel
+@{
+    ViewData["Title"] = "Punto de venta";
+    var variantes = (List<VarianteProducto>)ViewBag.Variantes;
+}
+<h1 class="h3 mb-3">Punto de venta</h1>
+<form asp-action="Create" method="post">
+    <div asp-validation-summary="All" class="text-danger small"></div>
+    <div class="card p-3 mb-3">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label asp-for="ClienteId" class="form-label">Cliente</label>
+                <select asp-for="ClienteId" asp-items="ViewBag.Clientes" class="form-select"><option value="">Cliente general</option></select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="AlmacenId" class="form-label">Almacén</label>
+                <select asp-for="AlmacenId" asp-items="ViewBag.Almacenes" class="form-select"></select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="MetodoPago" class="form-label">Método de pago</label>
+                <select asp-for="MetodoPago" class="form-select">
+                    <option>Efectivo</option><option>Tarjeta</option><option>Transferencia</option>
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Descuento" class="form-label">Descuento (C$)</label>
+                <input asp-for="Descuento" class="form-control" type="number" step="0.01" value="0" />
+            </div>
+        </div>
+    </div>
+
+    <div class="card p-3">
+        <h2 class="h5">Productos disponibles</h2>
+        <table class="table table-sm align-middle">
+            <thead><tr><th>SKU</th><th>Producto</th><th>Variante</th><th class="text-end">Precio</th><th class="text-end">Stock</th><th class="text-end">Cantidad</th></tr></thead>
+            <tbody>
+                @for (var i = 0; i < variantes.Count; i++)
+                {
+                    var v = variantes[i];
+                    var stock = v.Existencias.Sum(e => e.Cantidad);
+                    <tr>
+                        <td><small>@v.Producto.Sku</small></td>
+                        <td>@v.Producto.Nombre</td>
+                        <td>@v.Color / @v.Talla</td>
+                        <td class="text-end">C$ @v.Producto.Precio.ToString("N2")</td>
+                        <td class="text-end">@stock</td>
+                        <td class="text-end" style="width: 120px">
+                            <input type="hidden" name="Items[@i].VarianteProductoId" value="@v.Id" />
+                            <input name="Items[@i].Cantidad" class="form-control form-control-sm text-end" type="number" min="0" max="@stock" value="0" />
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+        <button class="btn btn-dark" type="submit">Confirmar venta</button>
+        <a class="btn btn-secondary" asp-controller="Home" asp-action="Index">Cancelar</a>
+    </div>
+</form>

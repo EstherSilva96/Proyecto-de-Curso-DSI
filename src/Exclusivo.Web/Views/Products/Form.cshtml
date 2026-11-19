@@ -1,0 +1,26 @@
+@model Producto
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Nuevo producto" : "Editar producto";
+}
+<h1 class="h3 mb-3">@ViewData["Title"]</h1>
+<div class="card p-4" style="max-width: 860px">
+    <form asp-action="@(Model.Id == 0 ? "Create" : "Edit")" method="post">
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="All" class="text-danger small"></div>
+        <div class="row g-3">
+            <div class="col-md-6"><label asp-for="Sku" class="form-label"></label><input asp-for="Sku" class="form-control" /><span asp-validation-for="Sku" class="text-danger small"></span></div>
+            <div class="col-md-6"><label asp-for="Nombre" class="form-label"></label><input asp-for="Nombre" class="form-control" /><span asp-validation-for="Nombre" class="text-danger small"></span></div>
+            <div class="col-12"><label asp-for="Descripcion" class="form-label"></label><textarea asp-for="Descripcion" class="form-control" rows="2"></textarea></div>
+            <div class="col-md-4"><label asp-for="CategoriaId" class="form-label"></label><select asp-for="CategoriaId" asp-items="ViewBag.Categorias" class="form-select"><option value="">--</option></select></div>
+            <div class="col-md-4"><label asp-for="MarcaId" class="form-label"></label><select asp-for="MarcaId" asp-items="ViewBag.Marcas" class="form-select"><option value="">--</option></select></div>
+            <div class="col-md-4"><label asp-for="ProveedorPrincipalId" class="form-label"></label><select asp-for="ProveedorPrincipalId" asp-items="ViewBag.Proveedores" class="form-select"><option value="">--</option></select></div>
+            <div class="col-md-4"><label asp-for="Costo" class="form-label"></label><input asp-for="Costo" class="form-control" type="number" step="0.01" /><span asp-validation-for="Costo" class="text-danger small"></span></div>
+            <div class="col-md-4"><label asp-for="Precio" class="form-label"></label><input asp-for="Precio" class="form-control" type="number" step="0.01" /><span asp-validation-for="Precio" class="text-danger small"></span></div>
+            <div class="col-md-4"><label asp-for="ImagenUrl" class="form-label"></label><input asp-for="ImagenUrl" class="form-control" /></div>
+        </div>
+        <div class="mt-4">
+            <button class="btn btn-dark" type="submit">Guardar</button>
+            <a class="btn btn-secondary" asp-action="Index">Cancelar</a>
+        </div>
+    </form>
+</div>
