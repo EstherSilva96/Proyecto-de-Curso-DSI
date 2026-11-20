@@ -34,12 +34,14 @@ public class UsersController : Controller
         NormalizarUsuario(usuario);
         ModelState.Remove("PasswordHash");
 
+        var nombreUsuarioNormalizado = usuario.NombreUsuario.ToLower();
+
         if (string.IsNullOrWhiteSpace(usuario.NombreUsuario))
             ModelState.AddModelError(nameof(Usuario.NombreUsuario), "El nombre de usuario es obligatorio.");
-        else if (await _db.Usuarios.AnyAsync(u => u.NombreUsuario.ToLower() == usuario.NombreUsuario.ToLower()))
+        else if (await _db.Usuarios.AnyAsync(u => (u.NombreUsuario ?? string.Empty).ToLower() == nombreUsuarioNormalizado))
             ModelState.AddModelError(nameof(Usuario.NombreUsuario), "Ese usuario ya existe.");
 
-        if (!Roles.Contains(usuario.Rol))
+        if (string.IsNullOrWhiteSpace(usuario.Rol) || !Roles.Contains(usuario.Rol))
             ModelState.AddModelError(nameof(Usuario.Rol), "Seleccione un rol válido.");
 
         if (string.IsNullOrWhiteSpace(clave) || clave.Trim().Length < 6)
@@ -75,13 +77,15 @@ public class UsersController : Controller
         var existente = await _db.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
         if (existente is null) return NotFound();
 
+        var nombreUsuarioNormalizado = usuario.NombreUsuario.ToLower();
+
         if (string.IsNullOrWhiteSpace(usuario.NombreUsuario))
             ModelState.AddModelError(nameof(Usuario.NombreUsuario), "El nombre de usuario es obligatorio.");
         else if (await _db.Usuarios.AnyAsync(u =>
-                     u.NombreUsuario.ToLower() == usuario.NombreUsuario.ToLower() && u.Id != id))
+                     (u.NombreUsuario ?? string.Empty).ToLower() == nombreUsuarioNormalizado && u.Id != id))
             ModelState.AddModelError(nameof(Usuario.NombreUsuario), "Ese usuario ya existe.");
 
-        if (!Roles.Contains(usuario.Rol))
+        if (string.IsNullOrWhiteSpace(usuario.Rol) || !Roles.Contains(usuario.Rol))
             ModelState.AddModelError(nameof(Usuario.Rol), "Seleccione un rol válido.");
 
         if (!string.IsNullOrWhiteSpace(clave) && clave.Trim().Length < 6)
@@ -124,8 +128,8 @@ public class UsersController : Controller
 
     private static void NormalizarUsuario(Usuario usuario)
     {
-        usuario.NombreUsuario = usuario.NombreUsuario?.Trim() ?? string.Empty;
-        usuario.Rol = usuario.Rol?.Trim() ?? string.Empty;
+        usuario.NombreUsuario = (usuario.NombreUsuario ?? string.Empty).Trim();
+        usuario.Rol = (usuario.Rol ?? string.Empty).Trim();
     }
 
     private IActionResult Formulario(Usuario usuario)
