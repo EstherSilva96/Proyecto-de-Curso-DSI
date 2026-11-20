@@ -14,7 +14,7 @@ public class UsersController : Controller
     private readonly AppDbContext _db;
     private readonly AuditService _audit;
     private static readonly string[] Roles = ["Administrador", "Gerente", "Inventario", "Vendedor", "Cajero"];
-    private string Usuario => AuthService.ObtenerUsuario(HttpContext) ?? "sistema";
+    private string UsuarioActual => AuthService.ObtenerUsuario(HttpContext) ?? "sistema";
 
     public UsersController(AppDbContext db, AuditService audit)
     {
@@ -34,11 +34,11 @@ public class UsersController : Controller
         NormalizarUsuario(usuario);
         ModelState.Remove("PasswordHash");
 
-        var nombreUsuarioNormalizado = usuario.NombreUsuario.ToLower();
+        var nombreUsuarioLower = usuario.NombreUsuario.ToLower();
 
         if (string.IsNullOrWhiteSpace(usuario.NombreUsuario))
             ModelState.AddModelError(nameof(Usuario.NombreUsuario), "El nombre de usuario es obligatorio.");
-        else if (await _db.Usuarios.AnyAsync(u => (u.NombreUsuario ?? string.Empty).ToLower() == nombreUsuarioNormalizado))
+        else if (await _db.Usuarios.AnyAsync(u => (u.NombreUsuario ?? string.Empty).ToLower() == nombreUsuarioLower))
             ModelState.AddModelError(nameof(Usuario.NombreUsuario), "Ese usuario ya existe.");
 
         if (string.IsNullOrWhiteSpace(usuario.Rol) || !Roles.Contains(usuario.Rol))
@@ -54,7 +54,7 @@ public class UsersController : Controller
         usuario.FechaCreacion = DateTime.UtcNow;
         _db.Usuarios.Add(usuario);
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(Usuario, "Crear usuario", "Usuario", usuario.Id, usuario.NombreUsuario);
+        await _audit.RegistrarAsync(UsuarioActual, "Crear usuario", "Usuario", usuario.Id, usuario.NombreUsuario);
         TempData["Mensaje"] = "Usuario registrado.";
         return RedirectToAction(nameof(Index));
     }
@@ -77,12 +77,12 @@ public class UsersController : Controller
         var existente = await _db.Usuarios.AsNoTracking().FirstOrDefaultAsync(u => u.Id == id);
         if (existente is null) return NotFound();
 
-        var nombreUsuarioNormalizado = usuario.NombreUsuario.ToLower();
+        var nombreUsuarioLower = usuario.NombreUsuario.ToLower();
 
         if (string.IsNullOrWhiteSpace(usuario.NombreUsuario))
             ModelState.AddModelError(nameof(Usuario.NombreUsuario), "El nombre de usuario es obligatorio.");
         else if (await _db.Usuarios.AnyAsync(u =>
-                     (u.NombreUsuario ?? string.Empty).ToLower() == nombreUsuarioNormalizado && u.Id != id))
+                     (u.NombreUsuario ?? string.Empty).ToLower() == nombreUsuarioLower && u.Id != id))
             ModelState.AddModelError(nameof(Usuario.NombreUsuario), "Ese usuario ya existe.");
 
         if (string.IsNullOrWhiteSpace(usuario.Rol) || !Roles.Contains(usuario.Rol))
@@ -102,7 +102,7 @@ public class UsersController : Controller
 
         _db.Usuarios.Update(usuario);
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(Usuario, "Editar usuario", "Usuario", id, usuario.NombreUsuario);
+        await _audit.RegistrarAsync(UsuarioActual, "Editar usuario", "Usuario", id, usuario.NombreUsuario);
         TempData["Mensaje"] = "Usuario actualizado.";
         return RedirectToAction(nameof(Index));
     }
@@ -117,7 +117,7 @@ public class UsersController : Controller
         usuario.Activo = !usuario.Activo;
         await _db.SaveChangesAsync();
         await _audit.RegistrarAsync(
-            Usuario,
+            UsuarioActual,
             usuario.Activo ? "Activar usuario" : "Desactivar usuario",
             "Usuario",
             usuario.Id,
