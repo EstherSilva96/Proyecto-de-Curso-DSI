@@ -58,6 +58,7 @@ public class UsersController : Controller
         if (id != usuario.Id) return BadRequest();
         if (await _db.Usuarios.AnyAsync(u => u.NombreUsuario == usuario.NombreUsuario && u.Id != id))
             ModelState.AddModelError("NombreUsuario", "Ese usuario ya existe.");
+            ModelState.Remove("PasswordHash");
         if (!ModelState.IsValid) return Formulario(usuario);
 
         var existente = await _db.Usuarios.AsNoTracking().FirstAsync(u => u.Id == id);
