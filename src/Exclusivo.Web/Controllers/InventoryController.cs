@@ -11,6 +11,8 @@ namespace Exclusivo.Web.Controllers;
 [Authorize]
 public class InventoryController : Controller
 {
+    private static readonly string[] TiposPermitidos = ["Entrada", "Salida", "Ajuste"];
+
     private readonly AppDbContext _db;
     private readonly InventoryService _inventario;
     private readonly AuditService _audit;
@@ -45,7 +47,11 @@ public class InventoryController : Controller
     [Authorize(Roles = "Administrador,Gerente,Inventario")]
     public async Task<IActionResult> Create(MovimientoViewModel model)
     {
-        if (!ModelState.IsValid) return await FormularioAsync(model);
+        NormalizarMovimiento(model);
+        await ValidarMovimientoAsync(model);
+
+        if (!ModelState.IsValid)
+            return await FormularioAsync(model);
 
         var resultado = await _inventario.RegistrarMovimientoAsync(
             model.AlmacenId, model.VarianteProductoId, model.Cantidad,
@@ -61,6 +67,46 @@ public class InventoryController : Controller
             $"{model.Tipo} · Variante {model.VarianteProductoId} · {model.Cantidad}");
         TempData["Mensaje"] = resultado.Mensaje;
         return RedirectToAction(nameof(Index));
+    }
+
+    private static void NormalizarMovimiento(MovimientoViewModel model)
+    {
+        model.Tipo = model.Tipo?.Trim() ?? string.Empty;
+        model.Motivo = string.IsNullOrWhiteSpace(model.Motivo) ? null : model.Motivo.Trim();
+        model.DocumentoReferencia = string.IsNullOrWhiteSpace(model.DocumentoReferencia)
+            ? null
+            : model.DocumentoReferencia.Trim();
+    }
+
+    private async Task ValidarMovimientoAsync(MovimientoViewModel model)
+    {
+        if (model.AlmacenId <= 0 || !await _db.Almacenes.AnyAsync(a => a.Id == model.AlmacenId && a.Activo))
+        {
+            ModelState.AddModelError(
+                nameof(MovimientoViewModel.AlmacenId),
+                "Seleccione un almacén válido y activo.");
+        }
+
+        if (model.VarianteProductoId <= 0 || !await _db.Variantes.AnyAsync(v => v.Id == model.VarianteProductoId))
+        {
+            ModelState.AddModelError(
+                nameof(MovimientoViewModel.VarianteProductoId),
+                "Seleccione una variante de producto válida.");
+        }
+
+        if (string.IsNullOrWhiteSpace(model.Tipo) || !TiposPermitidos.Contains(model.Tipo))
+        {
+            ModelState.AddModelError(
+                nameof(MovimientoViewModel.Tipo),
+                "Seleccione un tipo de movimiento válido (Entrada, Salida o Ajuste).");
+        }
+
+        if (model.Cantidad <= 0)
+        {
+            ModelState.AddModelError(
+                nameof(MovimientoViewModel.Cantidad),
+                "La cantidad debe ser mayor que cero.");
+        }
     }
 
     private async Task<IActionResult> FormularioAsync(MovimientoViewModel model)
@@ -79,7 +125,7 @@ public class InventoryController : Controller
                 Selected = v.Id == model.VarianteProductoId
             })
             .ToList();
-        ViewBag.Tipos = new[] { "Entrada", "Salida", "Ajuste" }
+        ViewBag.Tipos = TiposPermitidos
             .Select(t => new SelectListItem { Value = t, Text = t, Selected = t == model.Tipo })
             .ToList();
         return View("Form", model);
