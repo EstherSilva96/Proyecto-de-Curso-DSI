@@ -20,17 +20,21 @@ public class WarehousesController : Controller
         _audit = audit;
     }
 
-    public async Task<IActionResult> Index() => View(await _db.Almacenes.OrderBy(a => a.Nombre).ToListAsync());
+    public async Task<IActionResult> Index() =>
+        View(await _db.Almacenes.OrderBy(a => a.Nombre).ToListAsync());
 
-    public IActionResult Create() => View("Form", new Almacen());
+    public IActionResult Create() => View("Form", new Almacen { Activo = true });
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Almacen almacen)
     {
-        if (await _db.Almacenes.AnyAsync(a => a.Nombre == almacen.Nombre))
-            ModelState.AddModelError("Nombre", "Ya existe un almacén con ese nombre.");
-        if (!ModelState.IsValid) return View("Form", almacen);
+        NormalizarAlmacen(almacen);
+        await ValidarAlmacenAsync(almacen, idActual: null);
+
+        if (!ModelState.IsValid)
+            return View("Form", almacen);
+
         _db.Almacenes.Add(almacen);
         await _db.SaveChangesAsync();
         await _audit.RegistrarAsync(Usuario, "Crear almacén", "Almacen", almacen.Id, almacen.Nombre);
@@ -49,12 +53,49 @@ public class WarehousesController : Controller
     public async Task<IActionResult> Edit(int id, Almacen almacen)
     {
         if (id != almacen.Id) return BadRequest();
-        if (await _db.Almacenes.AnyAsync(a => a.Nombre == almacen.Nombre && a.Id != id))
-            ModelState.AddModelError("Nombre", "Ya existe un almacén con ese nombre.");
-        if (!ModelState.IsValid) return View("Form", almacen);
+
+        NormalizarAlmacen(almacen);
+        await ValidarAlmacenAsync(almacen, idActual: id);
+
+        if (!ModelState.IsValid)
+            return View("Form", almacen);
+
         _db.Almacenes.Update(almacen);
         await _db.SaveChangesAsync();
+        await _audit.RegistrarAsync(Usuario, "Editar almacén", "Almacen", almacen.Id, almacen.Nombre);
         TempData["Mensaje"] = "Almacén actualizado.";
         return RedirectToAction(nameof(Index));
+    }
+
+    private static void NormalizarAlmacen(Almacen almacen)
+    {
+        almacen.Nombre = almacen.Nombre?.Trim() ?? string.Empty;
+        if (!string.IsNullOrWhiteSpace(almacen.Ubicacion))
+            almacen.Ubicacion = almacen.Ubicacion.Trim();
+        else
+            almacen.Ubicacion = null;
+    }
+
+    private async Task ValidarAlmacenAsync(Almacen almacen, int? idActual)
+    {
+        if (string.IsNullOrWhiteSpace(almacen.Nombre))
+        {
+            ModelState.AddModelError(nameof(Almacen.Nombre), "El nombre del almacén es obligatorio.");
+            return;
+        }
+
+        if (almacen.Nombre.Length > 100)
+        {
+            ModelState.AddModelError(nameof(Almacen.Nombre), "El nombre no puede superar 100 caracteres.");
+        }
+
+        var existeDuplicado = await _db.Almacenes.AnyAsync(a =>
+            a.Nombre.ToLower() == almacen.Nombre.ToLower() &&
+            (!idActual.HasValue || a.Id != idActual.Value));
+
+        if (existeDuplicado)
+        {
+            ModelState.AddModelError(nameof(Almacen.Nombre), "Ya existe un almacén con ese nombre.");
+        }
     }
 }
