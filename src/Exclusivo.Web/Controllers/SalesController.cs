@@ -38,14 +38,42 @@ public class SalesController : Controller
     [Authorize(Roles = "Administrador,Gerente,Vendedor")]
     public async Task<IActionResult> Create(VentaCreateViewModel model)
     {
-        var items = model.Items.Where(i => i.Cantidad > 0).ToList();
+        model.Items ??= [];
+
+        if (model.Items.Any(i => i.Cantidad < 0))
+        {
+            ModelState.AddModelError(string.Empty, "La cantidad de los productos no puede ser negativa.");
+        }
+
+        var items = model.Items
+            .Where(i => i.Cantidad > 0)
+            .Select(i => new ItemVentaViewModel
+            {
+                VarianteProductoId = i.VarianteProductoId,
+                Cantidad = i.Cantidad
+            })
+            .ToList();
+
         if (items.Count == 0)
         {
             ModelState.AddModelError(string.Empty, "Debe agregar al menos un producto al carrito.");
+        }
+        else if (items.Any(i => i.VarianteProductoId <= 0))
+        {
+            ModelState.AddModelError(string.Empty, "Seleccione una variante de producto válida para cada ítem.");
+        }
+
+        if (model.AlmacenId <= 0 || !await _db.Almacenes.AnyAsync(a => a.Id == model.AlmacenId && a.Activo))
+        {
+            ModelState.AddModelError(nameof(VentaCreateViewModel.AlmacenId), "Seleccione un almacén válido y activo.");
+        }
+
+        if (!ModelState.IsValid)
+        {
             return await FormularioAsync(model);
         }
 
-        model.Items = items.Select(i => new ItemVentaViewModel { VarianteProductoId = i.VarianteProductoId, Cantidad = i.Cantidad }).ToList();
+        model.Items = items;
         var resultado = await _ventas.CrearVentaAsync(model, Usuario);
         if (!resultado.Ok)
         {
@@ -71,7 +99,8 @@ public class SalesController : Controller
     [Authorize(Roles = "Administrador,Gerente")]
     public async Task<IActionResult> Anular(int id, string motivo)
     {
-        if (string.IsNullOrWhiteSpace(motivo))
+        var motivoLimpio = motivo?.Trim();
+        if (string.IsNullOrWhiteSpace(motivoLimpio))
         {
             TempData["Error"] = "La anulación requiere un motivo.";
             return RedirectToAction(nameof(Details), new { id });
@@ -86,14 +115,24 @@ public class SalesController : Controller
         }
 
         var almacenId = await _db.MovimientosInventario
-            .Where(m => m.VentaId == id).Select(m => m.AlmacenId).FirstOrDefaultAsync();
-        if (almacenId == 0) almacenId = await _db.Almacenes.Where(a => a.Activo).Select(a => a.Id).FirstOrDefaultAsync();
+            .Where(m => m.VentaId == id)
+            .Select(m => m.AlmacenId)
+            .FirstOrDefaultAsync();
+
+        if (almacenId == 0)
+            almacenId = await _db.Almacenes.Where(a => a.Activo).Select(a => a.Id).FirstOrDefaultAsync();
+
+        if (almacenId == 0)
+        {
+            TempData["Error"] = "No hay un almacén activo disponible para reingresar el inventario.";
+            return RedirectToAction(nameof(Details), new { id });
+        }
 
         foreach (var detalle in venta.Detalles)
         {
             var resultado = await _inventario.RegistrarMovimientoAsync(
-                almacenId, detalle.VarianteProductoId, detalle.Cantidad, "Ajuste",
-                $"Anulación: {motivo}", venta.NumeroFactura, Usuario);
+                almacenId, detalle.VarianteProductoId, detalle.Cantidad, "Entrada",
+                $"Anulación: {motivoLimpio}", venta.NumeroFactura, Usuario);
             if (!resultado.Ok)
             {
                 TempData["Error"] = resultado.Mensaje;
@@ -102,41 +141,60 @@ public class SalesController : Controller
         }
 
         venta.Estado = "Anulada";
-        venta.MotivoAnulacion = motivo;
+        venta.MotivoAnulacion = motivoLimpio;
         await _db.SaveChangesAsync();
+
         await _db.Auditorias.AddAsync(new Auditoria
         {
-            Usuario = Usuario, Accion = "Anular venta", Entidad = "Venta", EntidadId = id,
-            Detalles = $"{venta.NumeroFactura} · {motivo}"
+            Usuario = Usuario,
+            Accion = "Anular venta",
+            Entidad = "Venta",
+            EntidadId = id,
+            Detalles = $"{venta.NumeroFactura} · {motivoLimpio}"
         });
         await _db.SaveChangesAsync();
+
         TempData["Mensaje"] = "Venta anulada y stock restaurado.";
         return RedirectToAction(nameof(Details), new { id });
     }
+
     [HttpPost]
-[ValidateAntiForgeryToken]
-[Authorize(Roles = "Administrador,Gerente,Vendedor")]
-public async Task<IActionResult> RegistrarCliente(string? nombreCliente)
-{
-    var nombre = nombreCliente?.Trim();
-    if (string.IsNullOrWhiteSpace(nombre))
-        return BadRequest(new { mensaje = "Escriba el nombre del cliente." });
-    if (nombre.Length > 150)
-        return BadRequest(new { mensaje = "El nombre no puede superar 150 caracteres." });
-
-    var cliente = new Cliente { Nombre = nombre };
-    _db.Clientes.Add(cliente);
-    _db.Auditorias.Add(new Auditoria
+    [ValidateAntiForgeryToken]
+    [Authorize(Roles = "Administrador,Gerente,Vendedor")]
+    public async Task<IActionResult> RegistrarCliente(string? nombreCliente)
     {
-        Usuario = Usuario,
-        Accion = "Crear cliente",
-        Entidad = "Cliente",
-        Detalles = nombre
-    });
-    await _db.SaveChangesAsync();
+        var nombre = nombreCliente?.Trim();
+        if (string.IsNullOrWhiteSpace(nombre))
+            return BadRequest(new { mensaje = "Escriba el nombre del cliente." });
+        if (nombre.Length > 150)
+            return BadRequest(new { mensaje = "El nombre no puede superar 150 caracteres." });
 
-    return Json(new { id = cliente.Id, nombre = cliente.Nombre });
-}
+        var existente = await _db.Clientes
+            .FirstOrDefaultAsync(c => c.Nombre.ToLower() == nombre.ToLower());
+        if (existente is not null)
+        {
+            if (!existente.Activo)
+            {
+                existente.Activo = true;
+                await _db.SaveChangesAsync();
+            }
+            return Json(new { id = existente.Id, nombre = existente.Nombre });
+        }
+
+        var cliente = new Cliente { Nombre = nombre, Activo = true };
+        _db.Clientes.Add(cliente);
+        _db.Auditorias.Add(new Auditoria
+        {
+            Usuario = Usuario,
+            Accion = "Crear cliente",
+            Entidad = "Cliente",
+            Detalles = nombre
+        });
+        await _db.SaveChangesAsync();
+
+        return Json(new { id = cliente.Id, nombre = cliente.Nombre });
+    }
+
     private async Task<IActionResult> FormularioAsync(VentaCreateViewModel model)
     {
         ViewBag.Variantes = await _db.Variantes.Include(v => v.Producto).Include(v => v.Existencias)
