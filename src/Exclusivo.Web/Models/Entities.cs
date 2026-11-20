@@ -23,8 +23,8 @@ public class Proveedor
     [MaxLength(100)] public string? Apellidos { get; set; }
     [Required, MaxLength(120)] public string NombreOrganizacion { get; set; } = string.Empty;
     [MaxLength(30)] public string? Ruc { get; set; }
-    [MaxLength(30)] public string? Telefono { get; set; }
-    [MaxLength(150)] public string? Correo { get; set; }
+    [Phone(ErrorMessage = "Ingrese un número de teléfono válido."), MaxLength(30)] public string? Telefono { get; set; }
+    [EmailAddress(ErrorMessage = "Ingrese un correo electrónico válido."), MaxLength(150)] public string? Correo { get; set; }
     [MaxLength(250)] public string? Direccion { get; set; }
     public bool Activo { get; set; } = true;
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
