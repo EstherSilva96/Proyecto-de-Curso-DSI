@@ -34,6 +34,7 @@ public class UsersController : Controller
             ModelState.AddModelError("NombreUsuario", "Ese usuario ya existe.");
         if (string.IsNullOrWhiteSpace(clave) || clave.Length < 6)
             ModelState.AddModelError("Clave", "La contraseña debe tener al menos 6 caracteres.");
+            ModelState.Remove("PasswordHash");
         if (!ModelState.IsValid) return Formulario(usuario);
 
         usuario.PasswordHash = PasswordHasher.Hash(clave);
