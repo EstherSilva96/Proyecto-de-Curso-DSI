@@ -1,4 +1,4 @@
-@model VentaCreateViewModel
++@model VentaCreateViewModel
 @{
     ViewData["Title"] = "Punto de venta";
     var variantes = (List<VarianteProducto>)ViewBag.Variantes;
@@ -11,6 +11,7 @@
             <div class="col-md-4">
                 <label asp-for="ClienteId" class="form-label">Cliente</label>
                 <select asp-for="ClienteId" asp-items="ViewBag.Clientes" class="form-select"><option value="">Cliente general</option></select>
+                <button type="button" id="abrir-nuevo-cliente" class="btn btn-sm btn-outline-primary mt-2">Nuevo cliente</button>
             </div>
             <div class="col-md-4">
                 <label asp-for="AlmacenId" class="form-label">Almacén</label>
@@ -78,5 +79,100 @@
 
         almacen.addEventListener("change", actualizarStock);
         actualizarStock();
+    })();
+</script>
+<dialog id="nuevo-cliente-dialog" class="border-0 rounded-3 shadow p-4">
+    <h2 class="h5">Registrar cliente</h2>
+
+    <form id="nuevo-cliente-form"
+          asp-controller="Sales"
+          asp-action="RegistrarCliente"
+          method="post">
+
+        <div id="nuevo-cliente-error"
+             class="alert alert-danger d-none"
+             role="alert"></div>
+
+        <label for="nuevo-cliente-nombre" class="form-label">
+            Nombre del cliente
+        </label>
+
+        <input id="nuevo-cliente-nombre"
+               name="nombreCliente"
+               class="form-control"
+               required
+               maxlength="150"
+               autocomplete="name"
+               autofocus />
+
+        <div class="d-flex gap-2 mt-3">
+            <button id="guardar-nuevo-cliente"
+                    type="submit"
+                    class="btn btn-primary">
+                Guardar cliente
+            </button>
+
+            <button id="cancelar-nuevo-cliente"
+                    type="button"
+                    class="btn btn-secondary">
+                Cancelar
+            </button>
+        </div>
+    </form>
+</dialog>
+
+<script>
+    (() => {
+        const dialogo = document.getElementById("nuevo-cliente-dialog");
+        const formulario = document.getElementById("nuevo-cliente-form");
+        const guardar = document.getElementById("guardar-nuevo-cliente");
+        const error = document.getElementById("nuevo-cliente-error");
+        const clientes = document.getElementById("ClienteId");
+
+        document.getElementById("abrir-nuevo-cliente")
+            .addEventListener("click", () => {
+                error.classList.add("d-none");
+                dialogo.showModal();
+            });
+
+        document.getElementById("cancelar-nuevo-cliente")
+            .addEventListener("click", () => dialogo.close());
+
+        formulario.addEventListener("submit", async evento => {
+            evento.preventDefault();
+            if (guardar.disabled) return;
+
+            guardar.disabled = true;
+            error.classList.add("d-none");
+
+            try {
+                const respuesta = await fetch(formulario.action, {
+                    method: "POST",
+                    body: new FormData(formulario),
+                    credentials: "same-origin",
+                    headers: { "Accept": "application/json" }
+                });
+
+                if (!respuesta.headers.get("content-type")?.includes("application/json"))
+                    throw new Error("Revise su sesión e inténtelo de nuevo.");
+
+                const datos = await respuesta.json();
+
+                if (!respuesta.ok)
+                    throw new Error(datos.mensaje || "No se pudo guardar el cliente.");
+
+                clientes.add(new Option(datos.nombre, datos.id, true, true));
+                formulario.reset();
+                dialogo.close();
+            } catch (fallo) {
+                error.textContent = fallo instanceof TypeError
+                    ? "No se pudo conectar. Inténtelo de nuevo."
+                    : fallo.message || "No se pudo guardar el cliente.";
+
+                error.classList.remove("d-none");
+            } finally {
+                guardar.disabled = false;
+            }
+        });
     })();
 </script>
