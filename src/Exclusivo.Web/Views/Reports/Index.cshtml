@@ -1,32 +1,116 @@
 @model List<Venta>
+
 @{
     ViewData["Title"] = "Reporte de ventas";
 }
+
 <h1 class="h3 mb-3">Reporte de ventas</h1>
+
+<div asp-validation-summary="All"
+     class="text-danger small mb-3"></div>
+
 <div class="card p-3 mb-3">
-    <form method="get" class="row g-3 align-items-end">
-        <div class="col-md-3"><label class="form-label">Desde</label><input name="desde" type="date" class="form-control" value="@ViewBag.Desde" /></div>
-        <div class="col-md-3"><label class="form-label">Hasta</label><input name="hasta" type="date" class="form-control" value="@ViewBag.Hasta" /></div>
-        <div class="col-md-3"><button class="btn btn-dark" type="submit">Filtrar</button></div>
-        <div class="col-md-3"><a class="btn btn-outline-success" asp-action="ExportarCsv" asp-route-desde="@ViewBag.Desde" asp-route-hasta="@ViewBag.Hasta">Exportar CSV</a></div>
+    <form asp-action="Index"
+          method="get"
+          class="row g-3 align-items-end">
+
+        <div class="col-md-3">
+            <label class="form-label">Desde</label>
+            <input name="desde"
+                   type="date"
+                   class="form-control"
+                   value="@ViewBag.Desde" />
+        </div>
+
+        <div class="col-md-3">
+            <label class="form-label">Hasta</label>
+            <input name="hasta"
+                   type="date"
+                   class="form-control"
+                   value="@ViewBag.Hasta" />
+        </div>
+
+        <div class="col-md-3">
+            <button class="btn btn-dark" type="submit">
+                Filtrar
+            </button>
+        </div>
+
+        <div class="col-md-3">
+            <button class="btn btn-outline-success"
+                    type="submit"
+                    asp-action="ExportarExcel">
+                Exportar Excel
+            </button>
+        </div>
     </form>
 </div>
+
 <div class="row g-3 mb-3">
-    <div class="col-md-6"><div class="card p-3"><div class="text-muted">Ventas en el período</div><div class="kpi">@ViewBag.Cantidad</div></div></div>
-    <div class="col-md-6"><div class="card p-3"><div class="text-muted">Total facturado</div><div class="kpi">C$ @(((decimal)ViewBag.Total).ToString("N2"))</div></div></div>
+    <div class="col-md-6">
+        <div class="card p-3">
+            <div class="text-muted">
+                Ventas confirmadas en el período
+            </div>
+            <div class="kpi">@ViewBag.Cantidad</div>
+        </div>
+    </div>
+
+    <div class="col-md-6">
+        <div class="card p-3">
+            <div class="text-muted">Total confirmado</div>
+            <div class="kpi">
+                C$ @(((decimal)ViewBag.Total).ToString("N2"))
+            </div>
+        </div>
+    </div>
 </div>
+
+<p class="text-muted small">
+    Las ventas anuladas aparecen en el detalle y se excluyen del total.
+    Fechas y horas de Nicaragua.
+</p>
+
 <div class="card p-3">
     <table class="table align-middle">
-        <thead><tr><th>Factura</th><th>Fecha</th><th>Vendedor</th><th>Estado</th><th class="text-end">Total</th></tr></thead>
+        <thead>
+            <tr>
+                <th>Factura</th>
+                <th>Fecha</th>
+                <th>Cliente</th>
+                <th>Vendedor</th>
+                <th>Estado</th>
+                <th class="text-end">Total</th>
+            </tr>
+        </thead>
+
         <tbody>
             @foreach (var v in Model)
             {
                 <tr>
-                    <td><a asp-controller="Sales" asp-action="Details" asp-route-id="@v.Id">@v.NumeroFactura</a></td>
-                    <td>@v.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                    <td>
+                        <a asp-controller="Sales"
+                           asp-action="Details"
+                           asp-route-id="@v.Id">
+                            @v.NumeroFactura
+                        </a>
+                    </td>
+
+                    <td>
+                        @TimeZoneInfo.ConvertTimeBySystemTimeZoneId(
+                            v.Fecha,
+                            "UTC",
+                            "America/Managua"
+                        ).ToString("dd/MM/yyyy HH:mm")
+                    </td>
+
+                    <td>@(v.Cliente?.Nombre ?? "Cliente general")</td>
                     <td>@v.Usuario.NombreUsuario</td>
                     <td>@v.Estado</td>
-                    <td class="text-end">C$ @v.Total.ToString("N2")</td>
+
+                    <td class="text-end">
+                        C$ @v.Total.ToString("N2")
+                    </td>
                 </tr>
             }
         </tbody>
