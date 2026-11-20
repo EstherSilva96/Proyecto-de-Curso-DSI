@@ -41,7 +41,7 @@
             @foreach (var m in movimientos)
             {
                 <tr>
-                    <td>@m.Fecha.ToString("dd/MM HH:mm")</td>
+                    <td>@TimeZoneInfo.ConvertTimeBySystemTimeZoneId(m.Fecha, "UTC", "America/Managua").ToString("dd/MM/yyyy HH:mm")</td>
                     <td><span class="badge bg-@(m.Tipo == "Entrada" ? "success" : m.Tipo == "Salida" ? "danger" : "info")">@m.Tipo</span></td>
                     <td>@m.VarianteProducto.Producto.Nombre (@m.VarianteProducto.Color / @m.VarianteProducto.Talla)</td>
                     <td class="text-end">@m.Cantidad</td>
