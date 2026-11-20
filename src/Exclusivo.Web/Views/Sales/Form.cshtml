@@ -32,21 +32,25 @@
     <div class="card p-3">
         <h2 class="h5">Productos disponibles</h2>
         <table class="table table-sm align-middle">
-            <thead><tr><th>SKU</th><th>Producto</th><th>Variante</th><th class="text-end">Precio</th><th class="text-end">Stock</th><th class="text-end">Cantidad</th></tr></thead>
+            <thead><tr><th>SKU</th><th>Producto</th><th>Variante</th><th class="text-end">Precio</th><th class="text-end">Stock en almacén</th><th class="text-end">Cantidad</th></tr></thead>
             <tbody>
                 @for (var i = 0; i < variantes.Count; i++)
                 {
                     var v = variantes[i];
-                    var stock = v.Existencias.Sum(e => e.Cantidad);
+                    var stockPorAlmacen = v.Existencias
+                        .GroupBy(e => e.AlmacenId)
+                        .ToDictionary(g => g.Key, g => g.Sum(e => e.Cantidad));
+                    var stock = stockPorAlmacen.GetValueOrDefault(Model.AlmacenId);
                     <tr>
                         <td><small>@v.Producto.Sku</small></td>
                         <td>@v.Producto.Nombre</td>
                         <td>@v.Color / @v.Talla</td>
                         <td class="text-end">C$ @v.Producto.Precio.ToString("N2")</td>
-                        <td class="text-end">@stock</td>
+                        <td class="text-end" data-stock-disponible>@stock</td>
                         <td class="text-end" style="width: 120px">
                             <input type="hidden" name="Items[@i].VarianteProductoId" value="@v.Id" />
-                            <input name="Items[@i].Cantidad" class="form-control form-control-sm text-end" type="number" min="0" max="@stock" value="0" />
+                            <input name="Items[@i].Cantidad" class="form-control form-control-sm text-end" type="number" min="0" max="@stock" value="0"
+                                   data-stock-por-almacen="@System.Text.Json.JsonSerializer.Serialize(stockPorAlmacen)" />
                         </td>
                     </tr>
                 }
@@ -56,3 +60,23 @@
         <a class="btn btn-secondary" asp-controller="Home" asp-action="Index">Cancelar</a>
     </div>
 </form>
+
+<script>
+    (() => {
+        const almacen = document.getElementById("AlmacenId");
+        const cantidades = document.querySelectorAll("input[data-stock-por-almacen]");
+        if (!almacen) return;
+
+        function actualizarStock() {
+            cantidades.forEach(cantidad => {
+                const existencias = JSON.parse(cantidad.dataset.stockPorAlmacen);
+                const stock = existencias[almacen.value] ?? 0;
+                cantidad.closest("tr").querySelector("[data-stock-disponible]").textContent = stock;
+                cantidad.max = stock;
+            });
+        }
+
+        almacen.addEventListener("change", actualizarStock);
+        actualizarStock();
+    })();
+</script>
