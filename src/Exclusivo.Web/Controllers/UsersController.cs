@@ -34,6 +34,7 @@ public class UsersController : Controller
             ModelState.AddModelError("NombreUsuario", "Ese usuario ya existe.");
         if (string.IsNullOrWhiteSpace(clave) || clave.Length < 6)
             ModelState.AddModelError("Clave", "La contraseña debe tener al menos 6 caracteres.");
+            ModelState.Remove("PasswordHash");
         if (!ModelState.IsValid) return Formulario(usuario);
 
         usuario.PasswordHash = PasswordHasher.Hash(clave);
@@ -58,6 +59,7 @@ public class UsersController : Controller
         if (id != usuario.Id) return BadRequest();
         if (await _db.Usuarios.AnyAsync(u => u.NombreUsuario == usuario.NombreUsuario && u.Id != id))
             ModelState.AddModelError("NombreUsuario", "Ese usuario ya existe.");
+            ModelState.Remove("PasswordHash");
         if (!ModelState.IsValid) return Formulario(usuario);
 
         var existente = await _db.Usuarios.AsNoTracking().FirstAsync(u => u.Id == id);
