@@ -6,7 +6,7 @@
     <h1 class="h3">Historial de ventas</h1>
     @if (User.IsInRole("Administrador") || User.IsInRole("Gerente") || User.IsInRole("Vendedor"))
     {
-        <a class="btn btn-dark" asp-action="Create">Nueva venta</a>
+        <a class="btn btn-app" asp-action="Create">Nueva venta</a>
     }
 </div>
 <div class="card p-3">

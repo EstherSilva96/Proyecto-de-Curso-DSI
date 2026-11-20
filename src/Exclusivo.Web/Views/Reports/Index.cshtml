@@ -7,7 +7,7 @@
     <form method="get" class="row g-3 align-items-end">
         <div class="col-md-3"><label class="form-label">Desde</label><input name="desde" type="date" class="form-control" value="@ViewBag.Desde" /></div>
         <div class="col-md-3"><label class="form-label">Hasta</label><input name="hasta" type="date" class="form-control" value="@ViewBag.Hasta" /></div>
-        <div class="col-md-3"><button class="btn btn-dark" type="submit">Filtrar</button></div>
+        <div class="col-md-3"><button class="btn btn-app" type="submit">Filtrar</button></div>
         <div class="col-md-3"><a class="btn btn-outline-success" asp-action="ExportarCsv" asp-route-desde="@ViewBag.Desde" asp-route-hasta="@ViewBag.Hasta">Exportar CSV</a></div>
     </form>
 </div>

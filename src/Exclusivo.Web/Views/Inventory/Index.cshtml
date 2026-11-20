@@ -7,7 +7,7 @@
     <div><h1 class="h3">Inventario</h1><p class="text-muted mb-0">Existencias por variante y almacén</p></div>
     @if (User.IsInRole("Administrador") || User.IsInRole("Gerente") || User.IsInRole("Inventario"))
     {
-        <a class="btn btn-dark" asp-action="Create">Registrar movimiento</a>
+        <a class="btn btn-app" asp-action="Create">Registrar movimiento</a>
     }
 </div>
 <div class="card p-3 mb-4">
