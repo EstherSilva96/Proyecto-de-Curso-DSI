@@ -70,10 +70,6 @@ public class WarehousesController : Controller
     private static void NormalizarAlmacen(Almacen almacen)
     {
         almacen.Nombre = almacen.Nombre?.Trim() ?? string.Empty;
-        if (!string.IsNullOrWhiteSpace(almacen.Ubicacion))
-            almacen.Ubicacion = almacen.Ubicacion.Trim();
-        else
-            almacen.Ubicacion = null;
     }
 
     private async Task ValidarAlmacenAsync(Almacen almacen, int? idActual)
