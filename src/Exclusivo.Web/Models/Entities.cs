@@ -23,7 +23,11 @@ public class Proveedor
     [MaxLength(100)] public string? Apellidos { get; set; }
     [Required, MaxLength(120)] public string NombreOrganizacion { get; set; } = string.Empty;
     [MaxLength(30)] public string? Ruc { get; set; }
-    [Phone(ErrorMessage = "Ingrese un número de teléfono válido."), MaxLength(30)] public string? Telefono { get; set; }
+    [DataType(DataType.PhoneNumber)]
+    [RegularExpression(@"^(?:\+505[ -]?)?[0-9]{4}[ -]?[0-9]{4}$",
+        ErrorMessage = "Ingrese 8 dígitos. Puede usar 8888-1111 o +505 8888-1111.")]
+    [MaxLength(30)]
+    public string? Telefono { get; set; }
     [EmailAddress(ErrorMessage = "Ingrese un correo electrónico válido."), MaxLength(150)] public string? Correo { get; set; }
     [MaxLength(250)] public string? Direccion { get; set; }
     public bool Activo { get; set; } = true;
