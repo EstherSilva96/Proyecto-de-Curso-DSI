@@ -113,7 +113,30 @@ public class SalesController : Controller
         TempData["Mensaje"] = "Venta anulada y stock restaurado.";
         return RedirectToAction(nameof(Details), new { id });
     }
+    [HttpPost]
+[ValidateAntiForgeryToken]
+[Authorize(Roles = "Administrador,Gerente,Vendedor")]
+public async Task<IActionResult> RegistrarCliente(string? nombreCliente)
+{
+    var nombre = nombreCliente?.Trim();
+    if (string.IsNullOrWhiteSpace(nombre))
+        return BadRequest(new { mensaje = "Escriba el nombre del cliente." });
+    if (nombre.Length > 150)
+        return BadRequest(new { mensaje = "El nombre no puede superar 150 caracteres." });
 
+    var cliente = new Cliente { Nombre = nombre };
+    _db.Clientes.Add(cliente);
+    _db.Auditorias.Add(new Auditoria
+    {
+        Usuario = Usuario,
+        Accion = "Crear cliente",
+        Entidad = "Cliente",
+        Detalles = nombre
+    });
+    await _db.SaveChangesAsync();
+
+    return Json(new { id = cliente.Id, nombre = cliente.Nombre });
+}
     private async Task<IActionResult> FormularioAsync(VentaCreateViewModel model)
     {
         ViewBag.Variantes = await _db.Variantes.Include(v => v.Producto).Include(v => v.Existencias)
