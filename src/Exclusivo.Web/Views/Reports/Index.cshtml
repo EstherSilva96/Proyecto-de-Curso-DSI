@@ -105,7 +105,7 @@
                     </td>
 
                     <td>@(v.Cliente?.Nombre ?? "Cliente general")</td>
-                    <td>@v.Usuario.NombreUsuario</td>
+                    <td>@($"{v.Usuario.Nombres} {v.Usuario.Apellidos}".Trim())</td>
                     <td>@v.Estado</td>
 
                     <td class="text-end">
