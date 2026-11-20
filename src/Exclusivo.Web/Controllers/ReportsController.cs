@@ -112,7 +112,8 @@ public class ReportsController : Controller
             hoja.Cell(fila, 3).Value =
                 venta.Cliente?.Nombre ?? "Cliente general";
 
-            hoja.Cell(fila, 4).Value = venta.Usuario.NombreUsuario;
+            hoja.Cell(fila, 4).Value =
+                $"{venta.Usuario.Nombres} {venta.Usuario.Apellidos}".Trim();
             hoja.Cell(fila, 5).Value = venta.Total;
 
             hoja.Cell(fila, 5).Style.NumberFormat.Format =
