@@ -108,6 +108,14 @@ public class MovimientoViewModel
     [StringLength(250)] public string? Motivo { get; set; }
 }
 
+public class ProductoMasVendidoViewModel
+{
+    public int ProductoId { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public int Unidades { get; set; }
+    public decimal Total { get; set; }
+}
+
 public class DashboardViewModel
 {
     public int TotalProductos { get; set; }
@@ -120,4 +128,5 @@ public class DashboardViewModel
     public decimal ValorInventario { get; set; }
     public List<Venta> UltimasVentas { get; set; } = new();
     public List<Existencia> StockBajo { get; set; } = new();
+    public List<ProductoMasVendidoViewModel> ProductosMasVendidos { get; set; } = new();
 }

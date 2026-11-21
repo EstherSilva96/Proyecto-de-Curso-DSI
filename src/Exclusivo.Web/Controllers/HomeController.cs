@@ -31,6 +31,32 @@ public class HomeController : Controller
 
         var stockBajo = existencias.Where(e => e.Cantidad <= e.Minimo).ToList();
 
+        var detallesVendidos = await _db.DetallesVenta
+            .Include(d => d.Venta)
+            .Include(d => d.VarianteProducto).ThenInclude(v => v.Producto)
+            .Where(d => d.Venta.Estado == "Confirmada")
+            .ToListAsync();
+
+        var productosMasVendidos = detallesVendidos
+            .GroupBy(d => new
+            {
+                d.VarianteProducto.ProductoId,
+                Nombre = d.VarianteProducto.Producto != null
+                    ? d.VarianteProducto.Producto.Nombre
+                    : "Producto"
+            })
+            .Select(g => new ProductoMasVendidoViewModel
+            {
+                ProductoId = g.Key.ProductoId,
+                Nombre = g.Key.Nombre,
+                Unidades = g.Sum(d => d.Cantidad),
+                Total = g.Sum(d => d.Subtotal)
+            })
+            .OrderByDescending(p => p.Unidades)
+            .ThenByDescending(p => p.Total)
+            .Take(5)
+            .ToList();
+
         var modelo = new DashboardViewModel
         {
             TotalProductos = await _db.Productos.CountAsync(p => p.Estado == "Activo"),
@@ -49,7 +75,8 @@ public class HomeController : Controller
                 .Include(v => v.Usuario)
                 .OrderByDescending(v => v.Fecha)
                 .Take(8)
-                .ToListAsync()
+                .ToListAsync(),
+            ProductosMasVendidos = productosMasVendidos
         };
 
         return View(modelo);

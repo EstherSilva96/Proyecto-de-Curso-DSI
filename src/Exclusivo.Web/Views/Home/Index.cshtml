@@ -138,3 +138,32 @@
         </div>
     </div>
 </div>
+
+<div class="row g-3 mt-1">
+    <div class="col-12">
+        <div class="card p-3">
+            <h2 class="h5 mb-3 fw-bold"><i class="bi bi-trophy me-2" style="color:#ffc000"></i>Productos más vendidos</h2>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead><tr><th>#</th><th>Producto</th><th class="text-end">Unidades vendidas</th><th class="text-end">Total vendido</th></tr></thead>
+                    <tbody>
+                        @if (Model.ProductosMasVendidos.Count == 0)
+                        {
+                            <tr><td colspan="4" class="text-center text-muted py-4">Aún no hay ventas registradas.</td></tr>
+                        }
+                        @{ var puesto = 1; }
+                        @foreach (var producto in Model.ProductosMasVendidos)
+                        {
+                            <tr>
+                                <td class="fw-bold">@(puesto++)</td>
+                                <td>@producto.Nombre</td>
+                                <td class="text-end fw-semibold">@producto.Unidades</td>
+                                <td class="text-end">C$ @producto.Total.ToString("N2")</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
