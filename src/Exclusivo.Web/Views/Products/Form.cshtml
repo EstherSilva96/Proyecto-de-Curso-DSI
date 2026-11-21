@@ -25,3 +25,28 @@
         </div>
     </form>
 </div>
+
+<script>
+(function () {
+    var marcasPorCategoria = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.MarcasPorCategoria));
+    var categoria = document.getElementById('CategoriaId');
+    var marca = document.getElementById('MarcaId');
+    if (!categoria || !marca) return;
+
+    function actualizarMarcas() {
+        var seleccionada = marca.value;
+        var lista = marcasPorCategoria[categoria.value] || [];
+        marca.innerHTML = '<option value="">-- Seleccione --</option>';
+        lista.forEach(function (m) {
+            var op = document.createElement('option');
+            op.value = m.id;
+            op.textContent = m.nombre;
+            marca.appendChild(op);
+        });
+        marca.value = lista.some(function (m) { return String(m.id) === seleccionada; }) ? seleccionada : '';
+    }
+
+    categoria.addEventListener('change', actualizarMarcas);
+    actualizarMarcas();
+})();
+</script>

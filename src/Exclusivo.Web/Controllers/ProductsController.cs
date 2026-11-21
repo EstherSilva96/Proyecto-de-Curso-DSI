@@ -155,8 +155,18 @@ public class ProductsController : Controller
 
     private async Task<IActionResult> FormularioAsync(Producto producto)
     {
-        ViewBag.Categorias = new SelectList(await _db.Categorias.Where(c => c.Activo).ToListAsync(), "Id", "Nombre", producto.CategoriaId);
-        ViewBag.Marcas = new SelectList(await _db.Marcas.Where(m => m.Activo).ToListAsync(), "Id", "Nombre", producto.MarcaId);
+        var categorias = await _db.Categorias.Where(c => c.Activo).OrderBy(c => c.Nombre).ToListAsync();
+        var marcas = await _db.Marcas.Where(m => m.Activo).OrderBy(m => m.Nombre).ToListAsync();
+
+        ViewBag.Categorias = new SelectList(categorias, "Id", "Nombre", producto.CategoriaId);
+        ViewBag.Marcas = new SelectList(marcas, "Id", "Nombre", producto.MarcaId);
+        ViewBag.MarcasPorCategoria = categorias.ToDictionary(
+            c => c.Id,
+            c => CatalogoHelper.MarcasPara(c.Nombre)
+                .Select(n => marcas.FirstOrDefault(m => m.Nombre.Equals(n, StringComparison.OrdinalIgnoreCase)))
+                .Where(m => m is not null)
+                .Select(m => new { id = m!.Id, nombre = m.Nombre })
+                .ToList());
         ViewBag.Proveedores = new SelectList(await _db.Proveedores.Where(p => p.Activo).ToListAsync(), "Id", "NombreOrganizacion", producto.ProveedorPrincipalId);
         return View("Form", producto);
     }

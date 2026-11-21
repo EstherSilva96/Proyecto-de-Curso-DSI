@@ -14,7 +14,11 @@ public static class DbInitializer
         await db.Database.EnsureCreatedAsync();
         await AplicarActualizacionesEsquemaAsync(db);
 
-        if (await db.Usuarios.AnyAsync()) return;
+        if (await db.Usuarios.AnyAsync())
+        {
+            await AsegurarCatalogoBaseAsync(db);
+            return;
+        }
 
         db.Usuarios.AddRange(
             new Usuario { NombreUsuario = "admin", Nombres = "Esther", Apellidos = "Silva", Rol = "Administrador", PasswordHash = PasswordHasher.Hash("Admin123*") },
@@ -116,6 +120,29 @@ public static class DbInitializer
         var cliente = new Cliente { Nombre = "Cliente General", Documento = "000-000000-0000" };
         db.Clientes.Add(cliente);
         db.Configuraciones.Add(new ConfiguracionEmpresa());
+        await db.SaveChangesAsync();
+        await AsegurarCatalogoBaseAsync(db);
+    }
+
+    /// <summary>
+    /// Agrega categorias y marcas del catalogo que falten en una base ya sembrada.
+    /// </summary>
+    private static async Task AsegurarCatalogoBaseAsync(AppDbContext db)
+    {
+        var categoriasExistentes = await db.Categorias.Select(c => c.Nombre).ToListAsync();
+        foreach (var categoria in CatalogoHelper.TodasLasCategorias())
+        {
+            if (!categoriasExistentes.Contains(categoria, StringComparer.OrdinalIgnoreCase))
+                db.Categorias.Add(new Categoria { Nombre = categoria });
+        }
+
+        var marcasExistentes = await db.Marcas.Select(m => m.Nombre).ToListAsync();
+        foreach (var marca in CatalogoHelper.TodasLasMarcas())
+        {
+            if (!marcasExistentes.Contains(marca, StringComparer.OrdinalIgnoreCase))
+                db.Marcas.Add(new Marca { Nombre = marca });
+        }
+
         await db.SaveChangesAsync();
     }
 
