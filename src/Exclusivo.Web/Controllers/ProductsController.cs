@@ -52,6 +52,7 @@ public class ProductsController : Controller
         });
         _db.Productos.Add(producto);
         await _db.SaveChangesAsync();
+        await AsegurarVariantePrincipalAsync(producto);
         await _audit.RegistrarAsync(Usuario, "Crear producto", "Producto", producto.Id, producto.Stock);
         TempData["Mensaje"] = "Producto registrado correctamente.";
         return RedirectToAction(nameof(Index));
@@ -60,7 +61,9 @@ public class ProductsController : Controller
     public async Task<IActionResult> Edit(int id)
     {
         var producto = await _db.Productos.FindAsync(id);
-        return producto is null ? NotFound() : await FormularioAsync(producto);
+        if (producto is null) return NotFound();
+        producto.Talla = (await _db.Variantes.FirstOrDefaultAsync(v => v.ProductoId == id))?.Talla;
+        return await FormularioAsync(producto);
     }
 
     [HttpPost]
@@ -88,6 +91,7 @@ public class ProductsController : Controller
 
         _db.Productos.Update(producto);
         await _db.SaveChangesAsync();
+        await AsegurarVariantePrincipalAsync(producto);
         await _audit.RegistrarAsync(Usuario, "Editar producto", "Producto", id, producto.Stock);
         TempData["Mensaje"] = "Producto actualizado correctamente.";
         return RedirectToAction(nameof(Index));
@@ -104,6 +108,49 @@ public class ProductsController : Controller
         await _audit.RegistrarAsync(Usuario, "Descontinuar producto", "Producto", id, producto.Stock);
         TempData["Mensaje"] = "Producto descontinuado.";
         return RedirectToAction(nameof(Index));
+    }
+
+    /// <summary>
+    /// Crea (o actualiza) la variante principal del producto con la talla indicada y
+    /// genera una fila de existencia por almacen activo para que aparezca en inventario y POS.
+    /// </summary>
+    private async Task AsegurarVariantePrincipalAsync(Producto producto)
+    {
+        var talla = string.IsNullOrWhiteSpace(producto.Talla) ? "Única" : producto.Talla.Trim();
+        if (talla.Length > 10) talla = talla[..10];
+
+        var variante = await _db.Variantes.FirstOrDefaultAsync(v => v.ProductoId == producto.Id);
+        if (variante is null)
+        {
+            variante = new VarianteProducto
+            {
+                ProductoId = producto.Id,
+                Talla = talla,
+                Color = "Único",
+                CodigoBarras = $"{producto.Stock}-{talla}"
+            };
+            _db.Variantes.Add(variante);
+            await _db.SaveChangesAsync();
+
+            var almacenesIds = await _db.Almacenes.Where(a => a.Activo).Select(a => a.Id).ToListAsync();
+            foreach (var almacenId in almacenesIds)
+            {
+                _db.Existencias.Add(new Existencia
+                {
+                    AlmacenId = almacenId,
+                    VarianteProductoId = variante.Id,
+                    Cantidad = 0,
+                    Minimo = 0,
+                    Maximo = 1000
+                });
+            }
+            await _db.SaveChangesAsync();
+        }
+        else if (variante.Talla != talla)
+        {
+            variante.Talla = talla;
+            await _db.SaveChangesAsync();
+        }
     }
 
     private async Task<IActionResult> FormularioAsync(Producto producto)

@@ -60,6 +60,7 @@ public class Producto
     [Column(TypeName = "numeric(12,2)")] public decimal Costo { get; set; }
     [Column(TypeName = "numeric(12,2)")] public decimal Precio { get; set; }
     [MaxLength(300)] public string? ImagenUrl { get; set; }
+    [NotMapped, MaxLength(10), Display(Name = "Talla")] public string? Talla { get; set; }
     [MaxLength(20)] public string Estado { get; set; } = "Activo";
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
     public ICollection<VarianteProducto> Variantes { get; set; } = new List<VarianteProducto>();
