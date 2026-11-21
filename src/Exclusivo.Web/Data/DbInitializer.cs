@@ -44,8 +44,8 @@ public static class DbInitializer
         var proveedor2 = new Proveedor { NombreOrganizacion = "Textiles Epic SA", Nombres = "Juan", Apellidos = "González", Ruc = "JVD-002", Telefono = "8888-2222" };
         db.Proveedores.AddRange(proveedor1, proveedor2);
 
-        var almacenCentral = new Almacen { Nombre = "Almacén Central", Descripcion = "Sucursal principal" };
-        var almacenCentro = new Almacen { Nombre = "Sucursal Centro", Descripcion = "Punto de venta centro" };
+        var almacenCentral = new Almacen { Nombre = "Sportline", Descripcion = "Sucursal principal" };
+        var almacenCentro = new Almacen { Nombre = "GoMarcas", Descripcion = "Punto de venta centro" };
         db.Almacenes.AddRange(almacenCentral, almacenCentro);
 
         var camiseta = new Producto
@@ -143,6 +143,55 @@ public static class DbInitializer
                 db.Marcas.Add(new Marca { Nombre = marca });
         }
 
+        await db.SaveChangesAsync();
+        await AsegurarAlmacenesAsync(db);
+    }
+
+    /// <summary>
+    /// Almacenes comerciales usados por el punto de venta. Los almacenes antiguos se
+    /// desactivan y su stock se migra a Sportline para no perder existencias.
+    /// </summary>
+    private static async Task AsegurarAlmacenesAsync(AppDbContext db)
+    {
+        string[] nombres = { "Sportline", "GoMarcas", "Almacenes Siman" };
+        string[] descripciones = { "Sucursal principal", "Punto de venta centro", "Almacén de distribución" };
+
+        var almacenes = await db.Almacenes.ToListAsync();
+        for (var i = 0; i < nombres.Length; i++)
+        {
+            var almacen = almacenes.FirstOrDefault(a => a.Nombre.Equals(nombres[i], StringComparison.OrdinalIgnoreCase));
+            if (almacen is null)
+            {
+                db.Almacenes.Add(new Almacen { Nombre = nombres[i], Descripcion = descripciones[i], Activo = true });
+            }
+            else
+            {
+                almacen.Activo = true;
+            }
+        }
+        await db.SaveChangesAsync();
+
+        var sportline = await db.Almacenes.FirstAsync(a => a.Nombre == "Sportline");
+        var antiguos = almacenes.Where(a => !nombres.Contains(a.Nombre, StringComparer.OrdinalIgnoreCase)).ToList();
+        foreach (var antiguo in antiguos)
+        {
+            var existencias = await db.Existencias.Where(e => e.AlmacenId == antiguo.Id).ToListAsync();
+            foreach (var existencia in existencias)
+            {
+                var destino = await db.Existencias.FirstOrDefaultAsync(
+                    e => e.AlmacenId == sportline.Id && e.VarianteProductoId == existencia.VarianteProductoId);
+                if (destino is null)
+                {
+                    existencia.AlmacenId = sportline.Id;
+                }
+                else
+                {
+                    destino.Cantidad += existencia.Cantidad;
+                    db.Existencias.Remove(existencia);
+                }
+            }
+            antiguo.Activo = false;
+        }
         await db.SaveChangesAsync();
     }
 
