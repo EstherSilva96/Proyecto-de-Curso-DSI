@@ -1,60 +1,140 @@
 ﻿@model DashboardViewModel
 @{
-    ViewData["Title"] = "Panel de control";
+    ViewData["Title"] = "Dashboard";
 }
-<div class="d-flex justify-content-between align-items-center mb-3">
-    <div><h1 class="h3">Panel de control</h1><p class="text-muted mb-0">Resumen de la operación de Exclusivo</p></div>
-    <a class="btn btn-dark" asp-controller="Sales" asp-action="Create">Nueva venta</a>
+<div class="d-flex flex-wrap justify-content-between align-items-center mb-4 gap-2">
+    <div>
+        <h1 class="h3 mb-1 fw-bold">Dashboard</h1>
+        <p class="text-muted mb-0">Resumen de la operación de Exclusivo</p>
+    </div>
+    <a class="btn btn-app" asp-controller="Sales" asp-action="Create">
+        <i class="bi bi-plus-circle me-1"></i> Nueva venta
+    </a>
 </div>
 
 <div class="row g-3">
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Ventas hoy</div><div class="kpi">@Model.VentasHoy</div><small>C$ @Model.MontoHoy.ToString("N2")</small></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Ventas del mes</div><div class="kpi">C$ @Model.MontoMes.ToString("N2")</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Ganancia bruta</div><div class="kpi">C$ @Model.GananciaBruta.ToString("N2")</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Productos activos</div><div class="kpi">@Model.TotalProductos</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Valor del inventario</div><div class="kpi">C$ @Model.ValorInventario.ToString("N2")</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Alertas de stock</div><div class="kpi text-warning">@Model.AlertasStock</div></div></div>
-    <div class="col-md-3"><div class="card p-3"><div class="text-muted">Productos agotados</div><div class="kpi text-danger">@Model.Agotados</div></div></div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card kpi-card rojo p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="text-muted small">Ventas hoy</div>
+                    <div class="kpi">@Model.VentasHoy</div>
+                    <small class="text-muted">C$ @Model.MontoHoy.ToString("N2")</small>
+                </div>
+                <span class="kpi-icon"><i class="bi bi-cash-coin"></i></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card kpi-card azul p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="text-muted small">Ventas del mes</div>
+                    <div class="kpi">C$ @Model.MontoMes.ToString("N2")</div>
+                </div>
+                <span class="kpi-icon"><i class="bi bi-calendar-range"></i></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card kpi-card verde p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="text-muted small">Ganancia bruta</div>
+                    <div class="kpi">C$ @Model.GananciaBruta.ToString("N2")</div>
+                </div>
+                <span class="kpi-icon"><i class="bi bi-graph-up-arrow"></i></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card kpi-card azul p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="text-muted small">Productos activos</div>
+                    <div class="kpi">@Model.TotalProductos</div>
+                </div>
+                <span class="kpi-icon"><i class="bi bi-box-seam"></i></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card kpi-card p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="text-muted small">Valor del inventario</div>
+                    <div class="kpi">C$ @Model.ValorInventario.ToString("N2")</div>
+                </div>
+                <span class="kpi-icon"><i class="bi bi-boxes"></i></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card kpi-card amarillo p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="text-muted small">Alertas de stock</div>
+                    <div class="kpi text-warning">@Model.AlertasStock</div>
+                </div>
+                <span class="kpi-icon"><i class="bi bi-exclamation-triangle"></i></span>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6 col-xl-3">
+        <div class="card kpi-card rojo p-3 h-100">
+            <div class="d-flex justify-content-between align-items-start">
+                <div>
+                    <div class="text-muted small">Productos agotados</div>
+                    <div class="kpi text-danger">@Model.Agotados</div>
+                </div>
+                <span class="kpi-icon"><i class="bi bi-x-octagon"></i></span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <div class="row g-3 mt-1">
     <div class="col-lg-7">
-        <div class="card p-3">
-            <h2 class="h5">Últimas ventas</h2>
-            <table class="table table-sm align-middle">
-                <thead><tr><th>Factura</th><th>Fecha</th><th>Vendedor</th><th class="text-end">Total</th><th>Estado</th></tr></thead>
-                <tbody>
-                    @foreach (var venta in Model.UltimasVentas)
-                    {
-                        <tr>
-                            <td><a asp-controller="Sales" asp-action="Details" asp-route-id="@venta.Id">@venta.NumeroFactura</a></td>
-                            <td>@venta.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
-                            <td>@venta.Usuario.NombreUsuario</td>
-                            <td class="text-end">C$ @venta.Total.ToString("N2")</td>
-                            <td>@venta.Estado</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="card p-3 h-100">
+            <h2 class="h5 mb-3 fw-bold"><i class="bi bi-receipt me-2 text-danger"></i>Últimas ventas</h2>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead><tr><th>Factura</th><th>Fecha</th><th>Vendedor</th><th class="text-end">Total</th><th>Estado</th></tr></thead>
+                    <tbody>
+                        @foreach (var venta in Model.UltimasVentas)
+                        {
+                            <tr>
+                                <td><a asp-controller="Sales" asp-action="Details" asp-route-id="@venta.Id">@venta.NumeroFactura</a></td>
+                                <td>@venta.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td>@venta.Usuario.NombreUsuario</td>
+                                <td class="text-end fw-semibold">C$ @venta.Total.ToString("N2")</td>
+                                <td>@venta.Estado</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
     <div class="col-lg-5">
-        <div class="card p-3">
-            <h2 class="h5">Stock bajo</h2>
-            <table class="table table-sm align-middle">
-                <thead><tr><th>Producto</th><th>Variante</th><th class="text-end">Actual</th><th class="text-end">Mínimo</th></tr></thead>
-                <tbody>
-                    @foreach (var e in Model.StockBajo)
-                    {
-                        <tr>
-                            <td>@e.VarianteProducto.Producto.Nombre</td>
-                            <td>@e.VarianteProducto.Color / @e.VarianteProducto.Talla</td>
-                            <td class="text-end @(e.Cantidad == 0 ? "text-danger fw-bold" : "text-warning")">@e.Cantidad</td>
-                            <td class="text-end">@e.Minimo</td>
-                        </tr>
-                    }
-                </tbody>
-            </table>
+        <div class="card p-3 h-100">
+            <h2 class="h5 mb-3 fw-bold"><i class="bi bi-exclamation-circle me-2" style="color:#ffc000"></i>Stock bajo</h2>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover align-middle mb-0">
+                    <thead><tr><th>Producto</th><th>Variante</th><th class="text-end">Actual</th><th class="text-end">Mínimo</th></tr></thead>
+                    <tbody>
+                        @foreach (var e in Model.StockBajo)
+                        {
+                            <tr>
+                                <td>@e.VarianteProducto.Producto.Nombre</td>
+                                <td>@e.VarianteProducto.Color / @e.VarianteProducto.Talla</td>
+                                <td class="text-end @(e.Cantidad == 0 ? "text-danger fw-bold" : "text-warning")">@e.Cantidad</td>
+                                <td class="text-end">@e.Minimo</td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
         </div>
     </div>
 </div>

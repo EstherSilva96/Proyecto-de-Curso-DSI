@@ -11,6 +11,26 @@ public class LoginViewModel
     public string Clave { get; set; } = string.Empty;
 }
 
+public class ClienteFormViewModel
+{
+    public int Id { get; set; }
+
+    [Required, MaxLength(150), Display(Name = "Nombres")]
+    public string Nombres { get; set; } = string.Empty;
+
+    [Required, MaxLength(150), Display(Name = "Apellidos")]
+    public string Apellidos { get; set; } = string.Empty;
+
+    [Required, MaxLength(30), Display(Name = "Número de cédula")]
+    public string Cedula { get; set; } = string.Empty;
+
+    [MaxLength(30), Display(Name = "Teléfono")]
+    public string? Telefono { get; set; }
+
+    [MaxLength(250), Display(Name = "Dirección")]
+    public string? Direccion { get; set; }
+}
+
 public class ItemVentaViewModel
 {
     public int VarianteProductoId { get; set; }
@@ -22,10 +42,21 @@ public class ItemVentaViewModel
 public class VentaCreateViewModel
 {
     public int? ClienteId { get; set; }
-    [MaxLength(30)] public string MetodoPago { get; set; } = "Efectivo";
     public decimal Descuento { get; set; }
     public int AlmacenId { get; set; }
     public List<ItemVentaViewModel> Items { get; set; } = new();
+}
+
+public class ProductoPosViewModel
+{
+    public int VarianteId { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public decimal Costo { get; set; }
+    public decimal Precio { get; set; }
+    public string? Talla { get; set; }
+    public string? Color { get; set; }
+    public int AlmacenId { get; set; }
+    public int Cantidad { get; set; }
 }
 
 public class MovimientoViewModel

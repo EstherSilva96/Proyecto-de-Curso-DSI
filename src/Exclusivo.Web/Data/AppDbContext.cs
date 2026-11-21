@@ -9,6 +9,7 @@ public class AppDbContext : DbContext
 
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
+    public DbSet<RecomendacionCatalogo> Recomendaciones => Set<RecomendacionCatalogo>();
     public DbSet<Categoria> Categorias => Set<Categoria>();
     public DbSet<Marca> Marcas => Set<Marca>();
     public DbSet<Producto> Productos => Set<Producto>();
@@ -20,7 +21,6 @@ public class AppDbContext : DbContext
     public DbSet<Cliente> Clientes => Set<Cliente>();
     public DbSet<Venta> Ventas => Set<Venta>();
     public DbSet<DetalleVenta> DetallesVenta => Set<DetalleVenta>();
-    public DbSet<Pago> Pagos => Set<Pago>();
     public DbSet<OrdenCompra> OrdenesCompra => Set<OrdenCompra>();
     public DbSet<DetalleOrdenCompra> DetallesOrdenCompra => Set<DetalleOrdenCompra>();
     public DbSet<Auditoria> Auditorias => Set<Auditoria>();
@@ -34,7 +34,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Proveedor>().HasIndex(p => p.NombreOrganizacion).IsUnique();
         modelBuilder.Entity<Categoria>().HasIndex(c => c.Nombre).IsUnique();
         modelBuilder.Entity<Marca>().HasIndex(m => m.Nombre).IsUnique();
-        modelBuilder.Entity<Producto>().HasIndex(p => p.Sku).IsUnique();
+        modelBuilder.Entity<Producto>().HasIndex(p => p.Stock).IsUnique();
         modelBuilder.Entity<VarianteProducto>().HasIndex(v => v.CodigoBarras);
         modelBuilder.Entity<Cliente>().HasIndex(c => c.Documento);
         modelBuilder.Entity<Venta>().HasIndex(v => v.NumeroFactura).IsUnique();

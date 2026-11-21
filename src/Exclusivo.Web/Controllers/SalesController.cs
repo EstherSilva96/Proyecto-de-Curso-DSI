@@ -14,13 +14,15 @@ public class SalesController : Controller
     private readonly AppDbContext _db;
     private readonly SalesService _ventas;
     private readonly InventoryService _inventario;
+    private readonly AuditService _audit;
     private string Usuario => AuthService.ObtenerUsuario(HttpContext) ?? "sistema";
 
-    public SalesController(AppDbContext db, SalesService ventas, InventoryService inventario)
+    public SalesController(AppDbContext db, SalesService ventas, InventoryService inventario, AuditService audit)
     {
         _db = db;
         _ventas = ventas;
         _inventario = inventario;
+        _audit = audit;
     }
 
     public async Task<IActionResult> Index()
@@ -89,7 +91,7 @@ public class SalesController : Controller
     {
         var venta = await _db.Ventas
             .Include(v => v.Detalles).ThenInclude(d => d.VarianteProducto).ThenInclude(vp => vp.Producto)
-            .Include(v => v.Cliente).Include(v => v.Usuario).Include(v => v.Pagos)
+            .Include(v => v.Cliente).Include(v => v.Usuario)
             .FirstOrDefaultAsync(v => v.Id == id);
         return venta is null ? NotFound() : View(venta);
     }
@@ -195,9 +197,100 @@ public class SalesController : Controller
         return Json(new { id = cliente.Id, nombre = cliente.Nombre });
     }
 
+    [HttpGet]
+    public async Task<IActionResult> ProductoDetalle(int id)
+    {
+        var variante = await _db.Variantes.Include(v => v.Producto).FirstOrDefaultAsync(v => v.Id == id);
+        if (variante is null) return NotFound();
+
+        return Json(new
+        {
+            id = variante.Id,
+            codigo = variante.Producto.Stock,
+            nombre = variante.Producto.Nombre,
+            costo = variante.Producto.Costo,
+            precio = variante.Producto.Precio,
+            talla = variante.Talla,
+            color = variante.Color
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ProductoEditar(ProductoPosViewModel model)
+    {
+        var variante = await _db.Variantes.Include(v => v.Producto).FirstOrDefaultAsync(v => v.Id == model.VarianteId);
+        if (variante is null) return Json(new { ok = false, mensaje = "El producto no existe." });
+
+        if (string.IsNullOrWhiteSpace(model.Nombre))
+            return Json(new { ok = false, mensaje = "El nombre es obligatorio." });
+        if (model.Precio <= 0)
+            return Json(new { ok = false, mensaje = "El precio debe ser mayor que cero." });
+        if (model.Costo < 0)
+            return Json(new { ok = false, mensaje = "El costo no puede ser negativo." });
+
+        var producto = variante.Producto;
+        if (producto.Precio != model.Precio || producto.Costo != model.Costo)
+        {
+            _db.HistorialPrecios.Add(new HistorialPrecio
+            {
+                ProductoId = producto.Id,
+                CostoAnterior = producto.Costo, CostoNuevo = model.Costo,
+                PrecioAnterior = producto.Precio, PrecioNuevo = model.Precio,
+                Usuario = Usuario
+            });
+        }
+
+        producto.Nombre = model.Nombre.Trim();
+        producto.Costo = model.Costo;
+        producto.Precio = model.Precio;
+        variante.Talla = string.IsNullOrWhiteSpace(model.Talla) ? "Única" : model.Talla.Trim()[..Math.Min(10, model.Talla.Trim().Length)];
+        variante.Color = string.IsNullOrWhiteSpace(model.Color) ? "Único" : model.Color.Trim();
+
+        await _db.SaveChangesAsync();
+        await _audit.RegistrarAsync(Usuario, "Editar producto desde POS", "Producto", producto.Id, producto.Nombre);
+        return Json(new { ok = true, mensaje = "Producto actualizado.", nombre = producto.Nombre, talla = variante.Talla, color = variante.Color, precio = producto.Precio });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ProductoActualizar(ProductoPosViewModel model)
+    {
+        if (model.AlmacenId <= 0) return Json(new { ok = false, mensaje = "Seleccione un almacén." });
+        if (model.Cantidad < 0) return Json(new { ok = false, mensaje = "La cantidad no puede ser negativa." });
+
+        var actual = await _db.Existencias
+            .Where(e => e.AlmacenId == model.AlmacenId && e.VarianteProductoId == model.VarianteId)
+            .Select(e => e.Cantidad).FirstOrDefaultAsync();
+
+        var delta = model.Cantidad - actual;
+        if (delta == 0) return Json(new { ok = true, mensaje = "El stock no ha cambiado.", cantidad = actual });
+
+        var resultado = await _inventario.RegistrarMovimientoAsync(
+            model.AlmacenId, model.VarianteId, delta, "Ajuste",
+            "Actualización de stock desde el punto de venta", null, Usuario);
+
+        return Json(new { ok = resultado.Ok, mensaje = resultado.Mensaje, cantidad = model.Cantidad });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> ProductoEliminar(int varianteId)
+    {
+        var variante = await _db.Variantes.Include(v => v.Producto).FirstOrDefaultAsync(v => v.Id == varianteId);
+        if (variante is null) return Json(new { ok = false, mensaje = "El producto no existe." });
+
+        variante.Activo = false;
+        variante.Producto.Estado = "Descontinuado";
+        await _db.SaveChangesAsync();
+        await _audit.RegistrarAsync(Usuario, "Eliminar producto desde POS", "Producto", variante.ProductoId, variante.Producto.Nombre);
+        return Json(new { ok = true, mensaje = "Producto eliminado del catálogo." });
+    }
+
     private async Task<IActionResult> FormularioAsync(VentaCreateViewModel model)
     {
         ViewBag.Variantes = await _db.Variantes.Include(v => v.Producto).Include(v => v.Existencias)
+            .Where(v => v.Activo && v.Producto.Estado == "Activo")
             .OrderBy(v => v.Producto.Nombre).ToListAsync();
         ViewBag.Clientes = new SelectList(await _db.Clientes.Where(c => c.Activo).ToListAsync(), "Id", "Nombre", model.ClienteId);
         ViewBag.Almacenes = new SelectList(await _db.Almacenes.Where(a => a.Activo).ToListAsync(), "Id", "Nombre", model.AlmacenId);

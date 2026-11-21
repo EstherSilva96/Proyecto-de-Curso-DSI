@@ -4,16 +4,16 @@
 }
 <div class="d-flex justify-content-between align-items-center mb-3">
     <h1 class="h3">Catálogo de productos</h1>
-    <a class="btn btn-dark" asp-action="Create">Nuevo producto</a>
+    <a class="btn btn-app" asp-action="Create">Nuevo producto</a>
 </div>
 <div class="card p-3">
     <table class="table table-hover align-middle">
-        <thead><tr><th>SKU</th><th>Producto</th><th>Categoría</th><th>Marca</th><th class="text-end">Costo</th><th class="text-end">Precio</th><th>Margen</th><th>Estado</th><th></th></tr></thead>
+        <thead><tr><th>STOCK</th><th>Producto</th><th>Categoría</th><th>Marca</th><th class="text-end">Costo</th><th class="text-end">Precio</th><th>Margen</th><th>Estado</th><th></th></tr></thead>
         <tbody>
             @foreach (var p in Model)
             {
                 <tr>
-                    <td><small>@p.Sku</small></td>
+                    <td><small>@p.Stock</small></td>
                     <td>@p.Nombre</td>
                     <td>@p.Categoria?.Nombre</td>
                     <td>@p.Marca?.Nombre</td>

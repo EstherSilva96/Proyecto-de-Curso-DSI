@@ -34,6 +34,16 @@ public class Proveedor
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>Recomendaciones de control tomadas del catalogo Word (seccion 4.3).</summary>
+public class RecomendacionCatalogo
+{
+    public int Id { get; set; }
+    [Required, MaxLength(40)] public string Ambito { get; set; } = "General";
+    [Required, MaxLength(500)] public string Texto { get; set; } = string.Empty;
+    public int Orden { get; set; }
+    public bool Activo { get; set; } = true;
+}
+
 public class Categoria
 {
     public int Id { get; set; }
@@ -52,7 +62,7 @@ public class Marca
 public class Producto
 {
     public int Id { get; set; }
-    [Required, MaxLength(50)] public string Sku { get; set; } = string.Empty;
+    [Required, MaxLength(50), Display(Name = "STOCK")] public string Stock { get; set; } = string.Empty;
     [Required, MaxLength(150)] public string Nombre { get; set; } = string.Empty;
     [MaxLength(500)] public string? Descripcion { get; set; }
     public int? CategoriaId { get; set; }
@@ -64,6 +74,7 @@ public class Producto
     [Column(TypeName = "numeric(12,2)")] public decimal Costo { get; set; }
     [Column(TypeName = "numeric(12,2)")] public decimal Precio { get; set; }
     [MaxLength(300)] public string? ImagenUrl { get; set; }
+    [NotMapped, MaxLength(10), Display(Name = "Talla")] public string? Talla { get; set; }
     [MaxLength(20)] public string Estado { get; set; } = "Activo";
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
     public ICollection<VarianteProducto> Variantes { get; set; } = new List<VarianteProducto>();
@@ -141,7 +152,10 @@ public class Cliente
 {
     public int Id { get; set; }
     [Required, MaxLength(150)] public string Nombre { get; set; } = string.Empty;
-    [MaxLength(30)] public string? Documento { get; set; }
+    [MaxLength(150)] public string? Nombres { get; set; }
+    [MaxLength(150)] public string? Apellidos { get; set; }
+    [MaxLength(30)] public string Documento { get; set; } = string.Empty;
+    [MaxLength(30)] public string? Cedula { get; set; }
     [MaxLength(30)] public string? Telefono { get; set; }
     [MaxLength(150)] public string? Correo { get; set; }
     [MaxLength(250)] public string? Direccion { get; set; }
@@ -163,10 +177,8 @@ public class Venta
     [Column(TypeName = "numeric(12,2)")] public decimal Impuesto { get; set; }
     [Column(TypeName = "numeric(12,2)")] public decimal Total { get; set; }
     [MaxLength(20)] public string Estado { get; set; } = "Confirmada";
-    [MaxLength(30)] public string MetodoPago { get; set; } = "Efectivo";
     [MaxLength(250)] public string? MotivoAnulacion { get; set; }
     public ICollection<DetalleVenta> Detalles { get; set; } = new List<DetalleVenta>();
-    public ICollection<Pago> Pagos { get; set; } = new List<Pago>();
 }
 
 public class DetalleVenta
@@ -180,17 +192,6 @@ public class DetalleVenta
     [Column(TypeName = "numeric(12,2)")] public decimal PrecioUnitario { get; set; }
     [Column(TypeName = "numeric(12,2)")] public decimal CostoUnitario { get; set; }
     [Column(TypeName = "numeric(12,2)")] public decimal Subtotal { get; set; }
-}
-
-public class Pago
-{
-    public int Id { get; set; }
-    public int VentaId { get; set; }
-    public Venta Venta { get; set; } = null!;
-    [Column(TypeName = "numeric(12,2)")] public decimal Monto { get; set; }
-    [MaxLength(30)] public string Metodo { get; set; } = "Efectivo";
-    [MaxLength(100)] public string? Referencia { get; set; }
-    public DateTime Fecha { get; set; } = DateTime.UtcNow;
 }
 
 public class OrdenCompra

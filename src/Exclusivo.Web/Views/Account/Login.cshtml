@@ -7,32 +7,52 @@
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Iniciar sesión · Exclusivo ERP</title>
+    <title>Iniciar sesión · Exclusivo APP</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css" rel="stylesheet" />
+    <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
 </head>
-<body class="bg-light">
-    <div class="container" style="max-width: 430px; margin-top: 10vh">
-        <div class="card p-4">
-            <h1 class="h4 mb-1">Exclusivo ERP</h1>
-            <p class="text-muted">Ingresa con tu usuario del sistema</p>
-            <form asp-action="Login" method="post">
-                <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
-                <div asp-validation-summary="All" class="text-danger small"></div>
-                <div class="mb-3">
-                    <label asp-for="NombreUsuario" class="form-label"></label>
-                    <input asp-for="NombreUsuario" class="form-control" autofocus />
-                    <span asp-validation-for="NombreUsuario" class="text-danger small"></span>
-                </div>
-                <div class="mb-3">
-                    <label asp-for="Clave" class="form-label"></label>
-                    <input asp-for="Clave" class="form-control" />
-                    <span asp-validation-for="Clave" class="text-danger small"></span>
-                </div>
-                <button class="btn btn-dark w-100" type="submit">Ingresar</button>
-            </form>
-            <hr />
-            <small class="text-muted">Usuarios de prueba: admin / gerente / vendedor / cajero / inventario</small>
+<body class="login-body">
+    <div class="login-topbar">
+        <div class="brand">
+            <span>ABSALÓN STORE</span>
         </div>
+        <div class="dark"></div>
+    </div>
+
+    <div class="login-card">
+        <img src="~/images/logo-absalon.png" alt="Absalón Store" class="login-logo" asp-append-version="true" />
+        <h1 class="login-title">Iniciar sesión</h1>
+        <p class="text-muted mb-4">Ingresa con tu usuario del sistema</p>
+
+        <form asp-action="Login" method="post">
+            <input type="hidden" name="returnUrl" value="@ViewData["ReturnUrl"]" />
+            <div asp-validation-summary="All" class="text-danger small mb-3"></div>
+
+            <div class="mb-3">
+                <label asp-for="NombreUsuario" class="form-label">Usuario</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-person text-secondary"></i></span>
+                    <input asp-for="NombreUsuario" class="form-control login-input border-start-0" autofocus placeholder="Ingresa tu usuario" />
+                </div>
+                <span asp-validation-for="NombreUsuario" class="text-danger small"></span>
+            </div>
+
+            <div class="mb-4">
+                <label asp-for="Clave" class="form-label">Contraseña</label>
+                <div class="input-group">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-lock text-secondary"></i></span>
+                    <input asp-for="Clave" class="form-control login-input border-start-0" type="password" placeholder="Ingresa tu contraseña" />
+                </div>
+                <span asp-validation-for="Clave" class="text-danger small"></span>
+            </div>
+
+            <button class="btn btn-login w-100" type="submit">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Ingresar
+            </button>
+        </form>
+
+        <div class="login-footer">2026 · Absalón Store · Exclusivo APP</div>
     </div>
 </body>
 </html>

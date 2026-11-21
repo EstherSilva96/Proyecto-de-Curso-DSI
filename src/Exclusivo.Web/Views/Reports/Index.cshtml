@@ -10,38 +10,18 @@
      class="text-danger small mb-3"></div>
 
 <div class="card p-3 mb-3">
-    <form asp-action="Index"
-          method="get"
-          class="row g-3 align-items-end">
-
+    <form asp-action="Index" method="get" class="row g-3 align-items-end">
         <div class="col-md-3">
             <label class="form-label">Desde</label>
-            <input name="desde"
-                   type="date"
-                   class="form-control"
-                   value="@ViewBag.Desde" />
+            <input name="desde" type="date" class="form-control" value="@ViewBag.Desde" />
         </div>
-
         <div class="col-md-3">
             <label class="form-label">Hasta</label>
-            <input name="hasta"
-                   type="date"
-                   class="form-control"
-                   value="@ViewBag.Hasta" />
+            <input name="hasta" type="date" class="form-control" value="@ViewBag.Hasta" />
         </div>
-
+        <div class="col-md-3"><button class="btn btn-app" type="submit">Filtrar</button></div>
         <div class="col-md-3">
-            <button class="btn btn-dark" type="submit">
-                Filtrar
-            </button>
-        </div>
-
-        <div class="col-md-3">
-            <button class="btn btn-outline-success"
-                    type="submit"
-                    asp-action="ExportarExcel">
-                Exportar Excel
-            </button>
+            <button class="btn btn-outline-success" type="submit" asp-action="ExportarExcel">Exportar Excel</button>
         </div>
     </form>
 </div>

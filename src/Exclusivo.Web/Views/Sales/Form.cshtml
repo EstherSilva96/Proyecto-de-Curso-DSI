@@ -10,18 +10,16 @@
         <div class="row g-3">
             <div class="col-md-4">
                 <label asp-for="ClienteId" class="form-label">Cliente</label>
-                <select asp-for="ClienteId" asp-items="ViewBag.Clientes" class="form-select"><option value="">Cliente general</option></select>
-                <button type="button" id="abrir-nuevo-cliente" class="btn btn-sm btn-outline-primary mt-2">Nuevo cliente</button>
+                <div class="input-group">
+                    <select asp-for="ClienteId" asp-items="ViewBag.Clientes" class="form-select" id="ClienteId"><option value="">Cliente general</option></select>
+                    <button class="btn btn-outline-primary" type="button" id="btnNuevoCliente" title="Nuevo cliente"><i class="bi bi-person-plus"></i></button>
+                    <button class="btn btn-outline-secondary" type="button" id="btnEditarCliente" title="Editar datos del cliente"><i class="bi bi-pencil"></i></button>
+                </div>
+                <div class="form-text" id="clienteSeleccionado">Seleccione un cliente guardado o registre uno nuevo.</div>
             </div>
             <div class="col-md-4">
                 <label asp-for="AlmacenId" class="form-label">Almacén</label>
-                <select asp-for="AlmacenId" asp-items="ViewBag.Almacenes" class="form-select"></select>
-            </div>
-            <div class="col-md-4">
-                <label asp-for="MetodoPago" class="form-label">Método de pago</label>
-                <select asp-for="MetodoPago" class="form-select">
-                    <option>Efectivo</option><option>Tarjeta</option><option>Transferencia</option>
-                </select>
+                <select asp-for="AlmacenId" asp-items="ViewBag.Almacenes" class="form-select" id="AlmacenId"></select>
             </div>
             <div class="col-md-4">
                 <label asp-for="Descuento" class="form-label">Descuento (C$)</label>
@@ -33,7 +31,7 @@
     <div class="card p-3">
         <h2 class="h5">Productos disponibles</h2>
         <table class="table table-sm align-middle">
-            <thead><tr><th>SKU</th><th>Producto</th><th>Variante</th><th class="text-end">Precio</th><th class="text-end">Stock en almacén</th><th class="text-end">Cantidad</th></tr></thead>
+            <thead><tr><th>CÓDIGO</th><th>Producto</th><th>Variante</th><th class="text-end">Precio</th><th class="text-end">Stock</th><th class="text-end">Cantidad</th><th>Acciones</th></tr></thead>
             <tbody>
                 @for (var i = 0; i < variantes.Count; i++)
                 {
@@ -42,137 +40,322 @@
                         .GroupBy(e => e.AlmacenId)
                         .ToDictionary(g => g.Key, g => g.Sum(e => e.Cantidad));
                     var stock = stockPorAlmacen.GetValueOrDefault(Model.AlmacenId);
-                    <tr>
-                        <td><small>@v.Producto.Sku</small></td>
-                        <td>@v.Producto.Nombre</td>
-                        <td>@v.Color / @v.Talla</td>
-                        <td class="text-end">C$ @v.Producto.Precio.ToString("N2")</td>
-                        <td class="text-end" data-stock-disponible>@stock</td>
+                    var stockTotal = v.Existencias.Sum(e => e.Cantidad);
+                    <tr id="fila-@v.Id">
+                        <td><small>@v.Producto.Stock</small></td>
+                        <td class="celda-nombre">@v.Producto.Nombre</td>
+                        <td class="celda-variante">@v.Color / @v.Talla</td>
+                        <td class="text-end celda-precio">C$ @v.Producto.Precio.ToString("N2")</td>
+                        <td class="text-end celda-stock" data-stock-disponible>@stock</td>
                         <td class="text-end" style="width: 120px">
                             <input type="hidden" name="Items[@i].VarianteProductoId" value="@v.Id" />
                             <input name="Items[@i].Cantidad" class="form-control form-control-sm text-end" type="number" min="0" max="@stock" value="0"
                                    data-stock-por-almacen="@System.Text.Json.JsonSerializer.Serialize(stockPorAlmacen)" />
                         </td>
+                        <td class="text-nowrap">
+                            <button type="button" class="btn btn-sm btn-outline-primary btn-editar-producto"
+                                    data-id="@v.Id" data-nombre="@v.Producto.Nombre" data-costo="@v.Producto.Costo"
+                                    data-precio="@v.Producto.Precio" data-talla="@v.Talla" data-color="@v.Color"
+                                    title="Editar producto"><i class="bi bi-pencil"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-success btn-stock-producto"
+                                    data-id="@v.Id" data-nombre="@v.Producto.Nombre" data-stock="@stockTotal"
+                                    title="Actualizar stock"><i class="bi bi-arrow-repeat"></i></button>
+                            <button type="button" class="btn btn-sm btn-outline-danger btn-eliminar-producto"
+                                    data-id="@v.Id" data-nombre="@v.Producto.Nombre"
+                                    title="Eliminar producto"><i class="bi bi-trash"></i></button>
+                        </td>
                     </tr>
                 }
             </tbody>
         </table>
-        <button class="btn btn-dark" type="submit">Confirmar venta</button>
-        <a class="btn btn-secondary" asp-controller="Home" asp-action="Index">Cancelar</a>
+        <button class="btn btn-app" type="submit">Confirmar venta</button>
+        <a class="btn btn-outline-secondary" asp-controller="Home" asp-action="Index">Cancelar</a>
     </div>
 </form>
 
-<script>
-    (() => {
-        const almacen = document.getElementById("AlmacenId");
-        const cantidades = document.querySelectorAll("input[data-stock-por-almacen]");
-        if (!almacen) return;
+<div class="modal fade" id="modalProducto" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formProducto" asp-controller="Sales" asp-action="ProductoEditar" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Editar producto</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="ProductoVarianteId" name="VarianteId" />
+                    <div id="errorProducto" class="alert alert-danger d-none small"></div>
+                    <div class="row g-3">
+                        <div class="col-12"><label for="ProductoNombre" class="form-label">Nombre</label><input id="ProductoNombre" name="Nombre" class="form-control" maxlength="150" required /></div>
+                        <div class="col-md-6"><label for="ProductoCosto" class="form-label">Costo (C$)</label><input id="ProductoCosto" name="Costo" class="form-control" type="number" step="0.01" min="0" required /></div>
+                        <div class="col-md-6"><label for="ProductoPrecio" class="form-label">Precio (C$)</label><input id="ProductoPrecio" name="Precio" class="form-control" type="number" step="0.01" min="0.01" required /></div>
+                        <div class="col-md-6"><label for="ProductoTalla" class="form-label">Talla</label><input id="ProductoTalla" name="Talla" class="form-control" maxlength="10" /></div>
+                        <div class="col-md-6"><label for="ProductoColor" class="form-label">Color</label><input id="ProductoColor" name="Color" class="form-control" maxlength="40" /></div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-app">Guardar cambios</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
 
-        function actualizarStock() {
-            cantidades.forEach(cantidad => {
-                const existencias = JSON.parse(cantidad.dataset.stockPorAlmacen);
-                const stock = existencias[almacen.value] ?? 0;
-                cantidad.closest("tr").querySelector("[data-stock-disponible]").textContent = stock;
+<div class="modal fade" id="modalStock" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formStock" asp-controller="Sales" asp-action="ProductoActualizar" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title">Actualizar stock</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="StockVarianteId" name="VarianteId" />
+                    <div id="errorStock" class="alert alert-danger d-none small"></div>
+                    <p class="small text-muted mb-3">Producto: <strong id="StockNombre"></strong></p>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="StockAlmacenId" class="form-label">Almacén</label>
+                            <select id="StockAlmacenId" name="AlmacenId" asp-items="ViewBag.Almacenes" class="form-select"></select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="StockCantidad" class="form-label">Cantidad disponible</label>
+                            <input id="StockCantidad" name="Cantidad" class="form-control" type="number" min="0" required />
+                        </div>
+                    </div>
+                    <p class="form-text mb-0">Stock actual en todos los almacenes: <span id="StockActual"></span></p>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-app">Actualizar</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalCliente" tabindex="-1" aria-labelledby="tituloCliente" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formCliente" asp-controller="Customers" asp-action="Guardar" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tituloCliente">Nuevo cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="ClienteIdForm" name="Id" value="0" />
+                    <div id="erroresCliente" class="alert alert-danger d-none small"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="ClienteNombres" class="form-label">Nombres</label>
+                            <input id="ClienteNombres" name="Nombres" class="form-control" maxlength="150" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ClienteApellidos" class="form-label">Apellidos</label>
+                            <input id="ClienteApellidos" name="Apellidos" class="form-control" maxlength="150" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ClienteCedula" class="form-label">Número de cédula</label>
+                            <input id="ClienteCedula" name="Cedula" class="form-control" maxlength="30" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ClienteTelefono" class="form-label">Teléfono</label>
+                            <input id="ClienteTelefono" name="Telefono" class="form-control" maxlength="30" />
+                        </div>
+                        <div class="col-12">
+                            <label for="ClienteDireccion" class="form-label">Dirección</label>
+                            <input id="ClienteDireccion" name="Direccion" class="form-control" maxlength="250" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-app">Guardar cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var almacen = document.getElementById('AlmacenId');
+    var cantidades = document.querySelectorAll('input[data-stock-por-almacen]');
+    if (almacen) {
+        function actualizarStockPorAlmacen() {
+            cantidades.forEach(function (cantidad) {
+                var existencias = JSON.parse(cantidad.dataset.stockPorAlmacen);
+                var stock = existencias[almacen.value] ?? 0;
+                var celda = cantidad.closest('tr').querySelector('[data-stock-disponible]');
+                if (celda) celda.textContent = stock;
                 cantidad.max = stock;
             });
         }
+        almacen.addEventListener('change', actualizarStockPorAlmacen);
+        actualizarStockPorAlmacen();
+    }
 
-        almacen.addEventListener("change", actualizarStock);
-        actualizarStock();
-    })();
-</script>
-<dialog id="nuevo-cliente-dialog" class="border-0 rounded-3 shadow p-4">
-    <h2 class="h5">Registrar cliente</h2>
+    var modalProducto = new bootstrap.Modal(document.getElementById('modalProducto'));
+    var modalStock = new bootstrap.Modal(document.getElementById('modalStock'));
+    var token = document.querySelector('#formProducto input[name="__RequestVerificationToken"]').value;
 
-    <form id="nuevo-cliente-form"
-          asp-controller="Sales"
-          asp-action="RegistrarCliente"
-          method="post">
+    function fila(id) { return document.getElementById('fila-' + id); }
 
-        <div id="nuevo-cliente-error"
-             class="alert alert-danger d-none"
-             role="alert"></div>
-
-        <label for="nuevo-cliente-nombre" class="form-label">
-            Nombre del cliente
-        </label>
-
-        <input id="nuevo-cliente-nombre"
-               name="nombreCliente"
-               class="form-control"
-               required
-               maxlength="150"
-               autocomplete="name"
-               autofocus />
-
-        <div class="d-flex gap-2 mt-3">
-            <button id="guardar-nuevo-cliente"
-                    type="submit"
-                    class="btn btn-primary">
-                Guardar cliente
-            </button>
-
-            <button id="cancelar-nuevo-cliente"
-                    type="button"
-                    class="btn btn-secondary">
-                Cancelar
-            </button>
-        </div>
-    </form>
-</dialog>
-
-<script>
-    (() => {
-        const dialogo = document.getElementById("nuevo-cliente-dialog");
-        const formulario = document.getElementById("nuevo-cliente-form");
-        const guardar = document.getElementById("guardar-nuevo-cliente");
-        const error = document.getElementById("nuevo-cliente-error");
-        const clientes = document.getElementById("ClienteId");
-
-        document.getElementById("abrir-nuevo-cliente")
-            .addEventListener("click", () => {
-                error.classList.add("d-none");
-                dialogo.showModal();
-            });
-
-        document.getElementById("cancelar-nuevo-cliente")
-            .addEventListener("click", () => dialogo.close());
-
-        formulario.addEventListener("submit", async evento => {
-            evento.preventDefault();
-            if (guardar.disabled) return;
-
-            guardar.disabled = true;
-            error.classList.add("d-none");
-
-            try {
-                const respuesta = await fetch(formulario.action, {
-                    method: "POST",
-                    body: new FormData(formulario),
-                    credentials: "same-origin",
-                    headers: { "Accept": "application/json" }
-                });
-
-                if (!respuesta.headers.get("content-type")?.includes("application/json"))
-                    throw new Error("Revise su sesión e inténtelo de nuevo.");
-
-                const datos = await respuesta.json();
-
-                if (!respuesta.ok)
-                    throw new Error(datos.mensaje || "No se pudo guardar el cliente.");
-
-                clientes.add(new Option(datos.nombre, datos.id, true, true));
-                formulario.reset();
-                dialogo.close();
-            } catch (fallo) {
-                error.textContent = fallo instanceof TypeError
-                    ? "No se pudo conectar. Inténtelo de nuevo."
-                    : fallo.message || "No se pudo guardar el cliente.";
-
-                error.classList.remove("d-none");
-            } finally {
-                guardar.disabled = false;
-            }
+    document.querySelectorAll('.btn-editar-producto').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.getElementById('ProductoVarianteId').value = btn.dataset.id;
+            document.getElementById('ProductoNombre').value = btn.dataset.nombre;
+            document.getElementById('ProductoCosto').value = btn.dataset.costo;
+            document.getElementById('ProductoPrecio').value = btn.dataset.precio;
+            document.getElementById('ProductoTalla').value = btn.dataset.talla || '';
+            document.getElementById('ProductoColor').value = btn.dataset.color || '';
+            document.getElementById('errorProducto').classList.add('d-none');
+            modalProducto.show();
         });
-    })();
+    });
+
+    document.getElementById('formProducto').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var response = await fetch(this.action, { method: 'POST', body: new FormData(this) });
+        var data = await response.json();
+        if (!data.ok) {
+            var error = document.getElementById('errorProducto');
+            error.textContent = data.mensaje || 'No se pudo guardar.';
+            error.classList.remove('d-none');
+            return;
+        }
+        var tr = fila(document.getElementById('ProductoVarianteId').value);
+        if (tr) {
+            tr.querySelector('.celda-nombre').textContent = data.nombre;
+            tr.querySelector('.celda-precio').textContent = 'C$ ' + Number(data.precio).toFixed(2);
+            tr.querySelector('.celda-variante').textContent = data.color + ' / ' + data.talla;
+            var btn = tr.querySelector('.btn-editar-producto');
+            btn.dataset.nombre = data.nombre;
+            btn.dataset.precio = data.precio;
+            btn.dataset.talla = data.talla;
+            btn.dataset.color = data.color;
+        }
+        modalProducto.hide();
+    });
+
+    document.querySelectorAll('.btn-stock-producto').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+            document.getElementById('StockVarianteId').value = btn.dataset.id;
+            document.getElementById('StockNombre').textContent = btn.dataset.nombre;
+            document.getElementById('StockActual').textContent = btn.dataset.stock;
+            document.getElementById('StockCantidad').value = btn.dataset.stock;
+            document.getElementById('errorStock').classList.add('d-none');
+            modalStock.show();
+        });
+    });
+
+    document.getElementById('formStock').addEventListener('submit', async function (e) {
+        e.preventDefault();
+        var response = await fetch(this.action, { method: 'POST', body: new FormData(this) });
+        var data = await response.json();
+        if (!data.ok) {
+            var error = document.getElementById('errorStock');
+            error.textContent = data.mensaje || 'No se pudo actualizar.';
+            error.classList.remove('d-none');
+            return;
+        }
+        var tr = fila(document.getElementById('StockVarianteId').value);
+        if (tr) {
+            var almacenSeleccionado = document.getElementById('StockAlmacenId').value;
+            var cantidades = tr.querySelector('input[data-stock-por-almacen]');
+            var existencias = JSON.parse(cantidades.dataset.stockPorAlmacen);
+            var anterior = existencias[almacenSeleccionado] ?? 0;
+            existencias[almacenSeleccionado] = data.cantidad;
+            cantidades.dataset.stockPorAlmacen = JSON.stringify(existencias);
+            if (String(almacenSeleccionado) === String(almacen.value)) {
+                tr.querySelector('.celda-stock').textContent = data.cantidad;
+                cantidades.max = data.cantidad;
+            }
+            var btnStock = tr.querySelector('.btn-stock-producto');
+            btnStock.dataset.stock = Number(btnStock.dataset.stock) - anterior + data.cantidad;
+        }
+        modalStock.hide();
+    });
+
+    document.querySelectorAll('.btn-eliminar-producto').forEach(function (btn) {
+        btn.addEventListener('click', async function () {
+            if (!confirm('¿Eliminar "' + btn.dataset.nombre + '" del catálogo?')) return;
+            var body = new FormData();
+            body.append('varianteId', btn.dataset.id);
+            body.append('__RequestVerificationToken', token);
+            var response = await fetch('/Sales/ProductoEliminar', { method: 'POST', body: body });
+            var data = await response.json();
+            if (!data.ok) { alert(data.mensaje || 'No se pudo eliminar.'); return; }
+            var tr = fila(btn.dataset.id);
+            if (tr) tr.remove();
+        });
+    });
+})();
 </script>
+<script>
+(function () {
+    var modalEl = document.getElementById('modalCliente');
+    var form = document.getElementById('formCliente');
+    var select = document.getElementById('ClienteId');
+    var info = document.getElementById('clienteSeleccionado');
+    if (!modalEl || !form || !select) return;
+
+    var modal = new bootstrap.Modal(modalEl);
+    var errores = document.getElementById('erroresCliente');
+
+    function limpiar() {
+        form.reset();
+        document.getElementById('ClienteIdForm').value = '0';
+        document.getElementById('tituloCliente').textContent = 'Nuevo cliente';
+        errores.classList.add('d-none');
+        errores.innerHTML = '';
+    }
+
+    function mostrarErrores(mensajes) {
+        errores.innerHTML = mensajes.map(function (m) { return '<div>' + m + '</div>'; }).join('');
+        errores.classList.remove('d-none');
+    }
+
+    document.getElementById('btnNuevoCliente').addEventListener('click', function () {
+        limpiar();
+        modal.show();
+    });
+
+    document.getElementById('btnEditarCliente').addEventListener('click', async function () {
+        if (!select.value) { alert('Seleccione primero un cliente guardado.'); return; }
+        var response = await fetch('/Customers/Obtener/' + select.value);
+        if (!response.ok) { alert('No se pudo cargar el cliente.'); return; }
+        var d = await response.json();
+        limpiar();
+        document.getElementById('ClienteIdForm').value = d.id;
+        document.getElementById('ClienteNombres').value = d.nombres || '';
+        document.getElementById('ClienteApellidos').value = d.apellidos || '';
+        document.getElementById('ClienteCedula').value = d.cedula || '';
+        document.getElementById('ClienteTelefono').value = d.telefono || '';
+        document.getElementById('ClienteDireccion').value = d.direccion || '';
+        document.getElementById('tituloCliente').textContent = 'Editar cliente';
+        modal.show();
+    });
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        errores.classList.add('d-none');
+        var response = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+        var data = await response.json();
+        if (!data.ok) { mostrarErrores(data.errores || ['No se pudo guardar el cliente.']); return; }
+
+        var opcion = Array.from(select.options).find(function (o) { return o.value === String(data.id); });
+        if (!opcion) {
+            opcion = document.createElement('option');
+            opcion.value = data.id;
+            select.appendChild(opcion);
+        }
+        opcion.textContent = data.nombre;
+        select.value = data.id;
+        info.textContent = 'Cliente: ' + data.nombre + (data.mensaje ? ' · ' + data.mensaje : '');
+        modal.hide();
+    });
+})();
+</script>
+}

@@ -57,7 +57,8 @@ public class ProductsController : Controller
 
         _db.Productos.Add(producto);
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(Usuario, "Crear producto", "Producto", producto.Id, producto.Sku);
+        await AsegurarVariantePrincipalAsync(producto);
+        await _audit.RegistrarAsync(Usuario, "Crear producto", "Producto", producto.Id, producto.Stock);
         TempData["Mensaje"] = "Producto registrado correctamente.";
         return RedirectToAction(nameof(Index));
     }
@@ -65,7 +66,9 @@ public class ProductsController : Controller
     public async Task<IActionResult> Edit(int id)
     {
         var producto = await _db.Productos.FindAsync(id);
-        return producto is null ? NotFound() : await FormularioAsync(producto);
+        if (producto is null) return NotFound();
+        producto.Talla = (await _db.Variantes.FirstOrDefaultAsync(v => v.ProductoId == id))?.Talla;
+        return await FormularioAsync(producto);
     }
 
     [HttpPost]
@@ -104,7 +107,8 @@ public class ProductsController : Controller
 
         _db.Productos.Update(producto);
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(Usuario, "Editar producto", "Producto", id, producto.Sku);
+        await AsegurarVariantePrincipalAsync(producto);
+        await _audit.RegistrarAsync(Usuario, "Editar producto", "Producto", id, producto.Stock);
         TempData["Mensaje"] = "Producto actualizado correctamente.";
         return RedirectToAction(nameof(Index));
     }
@@ -119,14 +123,14 @@ public class ProductsController : Controller
 
         producto.Estado = "Descontinuado";
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(Usuario, "Descontinuar producto", "Producto", id, producto.Sku);
+        await _audit.RegistrarAsync(Usuario, "Descontinuar producto", "Producto", id, producto.Stock);
         TempData["Mensaje"] = "Producto descontinuado.";
         return RedirectToAction(nameof(Index));
     }
 
     private static void NormalizarProducto(Producto producto)
     {
-        producto.Sku = producto.Sku?.Trim() ?? string.Empty;
+        producto.Stock = producto.Stock?.Trim() ?? string.Empty;
         producto.Nombre = producto.Nombre?.Trim() ?? string.Empty;
         if (!string.IsNullOrWhiteSpace(producto.Estado))
             producto.Estado = producto.Estado.Trim();
@@ -134,23 +138,23 @@ public class ProductsController : Controller
 
     private async Task ValidarProductoAsync(Producto producto, int? idActual)
     {
-        if (string.IsNullOrWhiteSpace(producto.Sku))
+        if (string.IsNullOrWhiteSpace(producto.Stock))
         {
             ModelState.AddModelError(
-                nameof(Producto.Sku),
-                "Ingrese el SKU del producto; no puede quedar vacío ni contener solo espacios.");
+                nameof(Producto.Stock),
+                "Ingrese el STOCK del producto; no puede quedar vacío ni contener solo espacios.");
         }
         else
         {
-            var skuDuplicado = await _db.Productos.AnyAsync(p =>
-                p.Sku == producto.Sku &&
+            var stockDuplicado = await _db.Productos.AnyAsync(p =>
+                p.Stock == producto.Stock &&
                 (!idActual.HasValue || p.Id != idActual.Value));
 
-            if (skuDuplicado)
+            if (stockDuplicado)
             {
                 ModelState.AddModelError(
-                    nameof(Producto.Sku),
-                    "Ya existe un producto con ese SKU.");
+                    nameof(Producto.Stock),
+                    "Ya existe un producto con ese STOCK.");
             }
         }
 
@@ -197,14 +201,75 @@ public class ProductsController : Controller
         }
     }
 
+    /// <summary>
+    /// Crea (o actualiza) la variante principal del producto con la talla indicada y
+    /// genera una fila de existencia por almacen activo para que aparezca en inventario y POS.
+    /// </summary>
+    private async Task AsegurarVariantePrincipalAsync(Producto producto)
+    {
+        var talla = string.IsNullOrWhiteSpace(producto.Talla) ? "Única" : producto.Talla.Trim();
+        if (talla.Length > 10) talla = talla[..10];
+
+        var variante = await _db.Variantes.FirstOrDefaultAsync(v => v.ProductoId == producto.Id);
+        if (variante is null)
+        {
+            variante = new VarianteProducto
+            {
+                ProductoId = producto.Id,
+                Talla = talla,
+                Color = "Único",
+                CodigoBarras = $"{producto.Stock}-{talla}"
+            };
+            _db.Variantes.Add(variante);
+            await _db.SaveChangesAsync();
+
+            var almacenesIds = await _db.Almacenes.Where(a => a.Activo).Select(a => a.Id).ToListAsync();
+            foreach (var almacenId in almacenesIds)
+            {
+                _db.Existencias.Add(new Existencia
+                {
+                    AlmacenId = almacenId,
+                    VarianteProductoId = variante.Id,
+                    Cantidad = 0,
+                    Minimo = 0,
+                    Maximo = 1000
+                });
+            }
+            await _db.SaveChangesAsync();
+        }
+        else if (variante.Talla != talla)
+        {
+            variante.Talla = talla;
+            await _db.SaveChangesAsync();
+        }
+    }
+
     private async Task<IActionResult> FormularioAsync(Producto producto)
     {
-        ViewBag.Categorias = new SelectList(
-            await _db.Categorias.Where(c => c.Activo).OrderBy(c => c.Nombre).ToListAsync(),
-            "Id", "Nombre", producto.CategoriaId);
+        var categorias = await _db.Categorias.Where(c => c.Activo).OrderBy(c => c.Nombre).ToListAsync();
+        var marcas = await _db.Marcas.Where(m => m.Activo).OrderBy(m => m.Nombre).ToListAsync();
+
+        static string EtiquetaMarca(Marca m) =>
+            m.Nombre.Equals(CatalogoHelper.MarcaPropia, StringComparison.OrdinalIgnoreCase)
+                ? $"{CatalogoHelper.MarcaPropia} (marca propia)"
+                : m.Nombre;
+
+        ViewBag.Categorias = new SelectList(categorias, "Id", "Nombre", producto.CategoriaId);
         ViewBag.Marcas = new SelectList(
-            await _db.Marcas.Where(m => m.Activo).OrderBy(m => m.Nombre).ToListAsync(),
-            "Id", "Nombre", producto.MarcaId);
+            marcas.Select(m => new SelectListItem { Value = m.Id.ToString(), Text = EtiquetaMarca(m) }),
+            "Value", "Text", producto.MarcaId?.ToString());
+        ViewBag.MarcasPorCategoria = categorias.ToDictionary(
+            c => c.Id,
+            c => CatalogoHelper.MarcasPara(c.Nombre)
+                .Select(n => marcas.FirstOrDefault(m => m.Nombre.Equals(n, StringComparison.OrdinalIgnoreCase)))
+                .Where(m => m is not null)
+                .Select(m => new { id = m!.Id, nombre = EtiquetaMarca(m!) })
+                .ToList());
+        ViewBag.NombresSugeridos = categorias.ToDictionary(
+            c => c.Id,
+            c => marcas.ToDictionary(
+                m => m.Id,
+                m => CatalogoHelper.NombresPara(c.Nombre, m.Nombre)));
         ViewBag.Proveedores = new SelectList(
             await _db.Proveedores.Where(p => p.Activo).OrderBy(p => p.NombreOrganizacion).ToListAsync(),
             "Id", "NombreOrganizacion", producto.ProveedorPrincipalId);

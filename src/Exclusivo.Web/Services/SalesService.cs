@@ -64,8 +64,7 @@ public class SalesService
             Subtotal = subtotal,
             Descuento = model.Descuento,
             Impuesto = impuesto,
-            Total = total,
-            MetodoPago = model.MetodoPago
+            Total = total
         };
 
         foreach (var item in model.Items)
@@ -91,13 +90,6 @@ public class SalesService
                 UsuarioId = usuarioDb.Id
             });
         }
-
-        venta.Pagos.Add(new Pago
-        {
-            Monto = total,
-            Metodo = model.MetodoPago,
-            Fecha = DateTime.UtcNow
-        });
 
         _db.Ventas.Add(venta);
         _db.Auditorias.Add(new Auditoria
