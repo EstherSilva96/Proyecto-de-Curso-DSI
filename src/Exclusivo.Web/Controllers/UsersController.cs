@@ -13,8 +13,11 @@ public class UsersController : Controller
 {
     private readonly AppDbContext _db;
     private readonly AuditService _audit;
-    private static readonly string[] Roles = { "Administrador", "Gerente", "Inventario", "Vendedor" };
-    private string Usuario => AuthService.ObtenerUsuario(HttpContext) ?? "sistema";
+    private static readonly string[] Roles =
+        ["Administrador", "Gerente", "Inventario", "Vendedor"];
+
+    private string UsuarioActual =>
+        AuthService.ObtenerUsuario(HttpContext) ?? "sys";
 
     public UsersController(AppDbContext db, AuditService audit)
     {
@@ -22,30 +25,61 @@ public class UsersController : Controller
         _audit = audit;
     }
 
-    public async Task<IActionResult> Index() => View(await _db.Usuarios.OrderBy(u => u.NombreUsuario).ToListAsync());
+    public async Task<IActionResult> Index() =>
+        View(await _db.Usuarios
+            .OrderBy(u => u.NombreUsuario)
+            .ToListAsync());
 
-    public IActionResult Create() => Formulario(new Usuario());
+    public IActionResult Create() =>
+        Formulario(new Usuario { Activo = true });
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Create(Usuario usuario, string clave)
+    public async Task<IActionResult> Create(Usuario usuario, string? clave)
     {
-        if (await _db.Usuarios.AnyAsync(u => u.NombreUsuario == usuario.NombreUsuario))
-            ModelState.AddModelError("NombreUsuario", "Ese usuario ya existe.");
-        if (string.IsNullOrWhiteSpace(clave) || clave.Length < 6)
-            ModelState.AddModelError("Clave", "La contraseña debe tener al menos 6 caracteres.");
-
-        if (!Roles.Contains(usuario.Rol))
-            ModelState.AddModelError("Rol", "Seleccione un rol válido.");
-
+        NormalizarUsuario(usuario);
         ModelState.Remove("PasswordHash");
-        if (!ModelState.IsValid) return Formulario(usuario);
 
-        usuario.PasswordHash = PasswordHasher.Hash(clave);
+        var nombreUsuarioLower = usuario.NombreUsuario.ToLower();
+
+        if (string.IsNullOrWhiteSpace(usuario.NombreUsuario))
+            ModelState.AddModelError(
+                nameof(Usuario.NombreUsuario),
+                "El nombre de usuario es obligatorio.");
+        else if (await _db.Usuarios.AnyAsync(u =>
+                     (u.NombreUsuario ?? string.Empty).ToLower()
+                     == nombreUsuarioLower))
+            ModelState.AddModelError(
+                nameof(Usuario.NombreUsuario),
+                "Ese usuario ya existe.");
+
+        if (string.IsNullOrWhiteSpace(usuario.Rol)
+            || !Roles.Contains(usuario.Rol))
+            ModelState.AddModelError(
+                nameof(Usuario.Rol),
+                "Seleccione un rol válido.");
+
+        if (string.IsNullOrWhiteSpace(clave) || clave.Length < 6)
+            ModelState.AddModelError(
+                "Clave",
+                "La contraseña debe tener al menos 6 caracteres.");
+
+        if (!ModelState.IsValid)
+            return Formulario(usuario);
+
+        usuario.PasswordHash = PasswordHasher.Hash(clave!);
         usuario.FechaCreacion = DateTime.UtcNow;
+
         _db.Usuarios.Add(usuario);
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(Usuario, "Crear usuario", "Usuario", usuario.Id, usuario.NombreUsuario);
+
+        await _audit.RegistrarAsync(
+            UsuarioActual,
+            "Crear usuario",
+            "Usuario",
+            usuario.Id,
+            usuario.NombreUsuario);
+
         TempData["Mensaje"] = "Usuario registrado.";
         return RedirectToAction(nameof(Index));
     }
@@ -58,25 +92,65 @@ public class UsersController : Controller
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Edit(int id, Usuario usuario, string? clave)
+    public async Task<IActionResult> Edit(
+        int id, Usuario usuario, string? clave)
     {
-        if (id != usuario.Id) return BadRequest();
-        if (await _db.Usuarios.AnyAsync(u => u.NombreUsuario == usuario.NombreUsuario && u.Id != id))
-            ModelState.AddModelError("NombreUsuario", "Ese usuario ya existe.");
+        if (id != usuario.Id)
+            return BadRequest();
 
-        if (!Roles.Contains(usuario.Rol))
-            ModelState.AddModelError("Rol", "Seleccione un rol válido.");
-
+        NormalizarUsuario(usuario);
         ModelState.Remove("PasswordHash");
-        if (!ModelState.IsValid) return Formulario(usuario);
 
-        var existente = await _db.Usuarios.AsNoTracking().FirstAsync(u => u.Id == id);
-        usuario.PasswordHash = string.IsNullOrWhiteSpace(clave) ? existente.PasswordHash : PasswordHasher.Hash(clave);
+        var existente = await _db.Usuarios
+            .AsNoTracking()
+            .FirstOrDefaultAsync(u => u.Id == id);
+
+        if (existente is null)
+            return NotFound();
+
+        var nombreUsuarioLower = usuario.NombreUsuario.ToLower();
+
+        if (string.IsNullOrWhiteSpace(usuario.NombreUsuario))
+            ModelState.AddModelError(
+                nameof(Usuario.NombreUsuario),
+                "El nombre de usuario es obligatorio.");
+        else if (await _db.Usuarios.AnyAsync(u =>
+                     (u.NombreUsuario ?? string.Empty).ToLower()
+                     == nombreUsuarioLower && u.Id != id))
+            ModelState.AddModelError(
+                nameof(Usuario.NombreUsuario),
+                "Ese usuario ya existe.");
+
+        if (string.IsNullOrWhiteSpace(usuario.Rol)
+            || !Roles.Contains(usuario.Rol))
+            ModelState.AddModelError(
+                nameof(Usuario.Rol),
+                "Seleccione un rol válido.");
+
+        if (!string.IsNullOrWhiteSpace(clave) && clave.Length < 6)
+            ModelState.AddModelError(
+                "Clave",
+                "La contraseña debe tener al menos 6 caracteres.");
+
+        if (!ModelState.IsValid)
+            return Formulario(usuario);
+
+        usuario.PasswordHash = string.IsNullOrWhiteSpace(clave)
+            ? existente.PasswordHash
+            : PasswordHasher.Hash(clave);
         usuario.FechaCreacion = existente.FechaCreacion;
         usuario.UltimoAcceso = existente.UltimoAcceso;
+
         _db.Usuarios.Update(usuario);
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(Usuario, "Editar usuario", "Usuario", id, usuario.NombreUsuario);
+
+        await _audit.RegistrarAsync(
+            UsuarioActual,
+            "Editar usuario",
+            "Usuario",
+            id,
+            usuario.NombreUsuario);
+
         TempData["Mensaje"] = "Usuario actualizado.";
         return RedirectToAction(nameof(Index));
     }
@@ -86,18 +160,45 @@ public class UsersController : Controller
     public async Task<IActionResult> Toggle(int id)
     {
         var usuario = await _db.Usuarios.FindAsync(id);
-        if (usuario is null) return NotFound();
+        if (usuario is null)
+            return NotFound();
+
         usuario.Activo = !usuario.Activo;
         await _db.SaveChangesAsync();
-        TempData["Mensaje"] = usuario.Activo ? "Usuario activado." : "Usuario desactivado.";
+
+        await _audit.RegistrarAsync(
+            UsuarioActual,
+            usuario.Activo ? "Activar usuario" : "Desactivar usuario",
+            "Usuario",
+            usuario.Id,
+            usuario.NombreUsuario);
+
+        TempData["Mensaje"] = usuario.Activo
+            ? "Usuario activado."
+            : "Usuario desactivado.";
+
         return RedirectToAction(nameof(Index));
+    }
+
+    private static void NormalizarUsuario(Usuario usuario)
+    {
+        usuario.NombreUsuario =
+            (usuario.NombreUsuario ?? string.Empty).Trim();
+
+        usuario.Rol = (usuario.Rol ?? string.Empty).Trim();
     }
 
     private IActionResult Formulario(Usuario usuario)
     {
         ViewBag.Roles = Roles
-            .Select(r => new SelectListItem { Value = r, Text = r, Selected = r == usuario.Rol })
+            .Select(r => new SelectListItem
+            {
+                Value = r,
+                Text = r,
+                Selected = r == usuario.Rol
+            })
             .ToList();
+
         return View("Form", usuario);
     }
-} 
+}
