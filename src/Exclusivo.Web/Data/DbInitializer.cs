@@ -43,9 +43,13 @@ public static class DbInitializer
         var benjy = new Marca { Nombre = "Benjy" };
         db.Marcas.AddRange(nike, adidas, puma, benjy);
 
-        var proveedor1 = new Proveedor { NombreOrganizacion = "Deportivos Textil", Nombres = "Armando", Apellidos = "Muros", Ruc = "JVD-001", Telefono = "8888-1111" };
-        var proveedor2 = new Proveedor { NombreOrganizacion = "Textiles Epic SA", Nombres = "Juan", Apellidos = "González", Ruc = "JVD-002", Telefono = "8888-2222" };
-        db.Proveedores.AddRange(proveedor1, proveedor2);
+        var proveedor1 = new Proveedor { NombreOrganizacion = "Exclussivo", Nombres = "Armando", Apellidos = "Muros", Ruc = "JVD-001", Telefono = "8888-1111" };
+        var proveedor2 = new Proveedor { NombreOrganizacion = "Sportline", Nombres = "Juan", Apellidos = "González", Ruc = "JVD-002", Telefono = "8888-2222" };
+        db.Proveedores.AddRange(
+            new Proveedor { NombreOrganizacion = "Almacenes Siman", Ruc = "JVD-003" },
+            new Proveedor { NombreOrganizacion = "GoMarcas", Ruc = "JVD-004" },
+            proveedor1,
+            proveedor2);
 
         var sucursalUnica = new Almacen { Nombre = "Sucursal Masaya Absalon Store", Descripcion = "Sucursal principal" };
         db.Almacenes.Add(sucursalUnica);
@@ -132,6 +136,8 @@ public static class DbInitializer
     /// </summary>
     private static async Task AsegurarCatalogoBaseAsync(AppDbContext db)
     {
+        await AsegurarProveedoresAsync(db);
+
         var categoriasExistentes = await db.Categorias.Select(c => c.Nombre).ToListAsync();
         foreach (var categoria in CatalogoHelper.TodasLasCategorias())
         {
@@ -308,6 +314,86 @@ public static class DbInitializer
             .Where(char.IsLetterOrDigit)
             .ToArray()).ToUpperInvariant();
         return limpio.Length >= 3 ? limpio[..3] : limpio.PadRight(3, 'X');
+    }
+
+    /// <summary>
+    /// Sustituye el catalogo de proveedores por los cuatro proveedores oficiales,
+    /// conservando las referencias de productos y ordenes de compra.
+    /// </summary>
+    private static async Task AsegurarProveedoresAsync(AppDbContext db)
+    {
+        string[] nombres = ["Almacenes Siman", "GoMarcas", "Sportline", "Exclussivo"];
+        var antiguos = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase)
+        {
+            ["Deportivos Textil"] = "Exclussivo",
+            ["Textiles Epic SA"] = "Sportline"
+        };
+
+        var existentes = await db.Proveedores.OrderBy(p => p.Id).ToListAsync();
+        var porNombre = new Dictionary<string, Proveedor>(StringComparer.OrdinalIgnoreCase);
+        var reutilizados = new HashSet<int>();
+
+        foreach (var nombre in nombres)
+        {
+            var proveedor = existentes.FirstOrDefault(
+                p => p.NombreOrganizacion.Equals(nombre, StringComparison.OrdinalIgnoreCase));
+
+            if (proveedor is null)
+            {
+                Proveedor? candidato = null;
+                foreach (var anterior in existentes)
+                {
+                    if (reutilizados.Contains(anterior.Id)) continue;
+                    var nombreAnterior = (anterior.NombreOrganizacion ?? string.Empty).Trim();
+                    if (antiguos.TryGetValue(nombreAnterior, out var destino)
+                        && destino.Equals(nombre, StringComparison.OrdinalIgnoreCase))
+                    {
+                        candidato = anterior;
+                        break;
+                    }
+                }
+
+                if (candidato is not null)
+                {
+                    candidato.NombreOrganizacion = nombre;
+                    reutilizados.Add(candidato.Id);
+                    proveedor = candidato;
+                }
+                else
+                {
+                    proveedor = new Proveedor { NombreOrganizacion = nombre, Activo = true };
+                    db.Proveedores.Add(proveedor);
+                }
+            }
+
+            proveedor.NombreOrganizacion = nombre;
+            proveedor.Activo = true;
+            porNombre[nombre] = proveedor;
+        }
+
+        await db.SaveChangesAsync();
+
+        var oficialesIds = porNombre.Values.Select(p => p.Id).ToList();
+        var sustituidos = existentes.Where(p => !oficialesIds.Contains(p.Id)).ToList();
+        if (sustituidos.Count == 0) return;
+
+        var sustituidosIds = sustituidos.Select(p => p.Id).ToList();
+        var principal = porNombre[nombres[0]];
+
+        var productos = await db.Productos
+            .Where(p => p.ProveedorPrincipalId.HasValue && sustituidosIds.Contains(p.ProveedorPrincipalId.Value))
+            .ToListAsync();
+        foreach (var producto in productos)
+            producto.ProveedorPrincipalId = principal.Id;
+
+        var ordenes = await db.OrdenesCompra
+            .Where(o => sustituidosIds.Contains(o.ProveedorId))
+            .ToListAsync();
+        foreach (var orden in ordenes)
+            orden.ProveedorId = principal.Id;
+
+        db.Proveedores.RemoveRange(sustituidos);
+        await db.SaveChangesAsync();
     }
 
     /// <summary>
