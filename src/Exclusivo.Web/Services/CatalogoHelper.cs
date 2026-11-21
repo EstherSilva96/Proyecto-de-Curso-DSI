@@ -6,7 +6,10 @@ namespace Exclusivo.Web.Services;
 /// </summary>
 public static class CatalogoHelper
 {
-    public static readonly string[] MarcasRopa = { "Nike", "Adidas", "Puma", "Benjy", "Exclussivo" };
+    /// <summary>Marca propia del negocio (Absalón Store).</summary>
+    public const string MarcaPropia = "Exclussivo";
+
+    public static readonly string[] MarcasRopa = { "Nike", "Adidas", "Puma", "Benjy", MarcaPropia };
 
     public static readonly string[] MarcasSuplementos =
     {
