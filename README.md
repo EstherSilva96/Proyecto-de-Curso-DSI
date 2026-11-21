@@ -29,8 +29,10 @@ La base se crea y siembra sola al arrancar (`DbInitializer`). Usuarios de prueba
 | admin | Admin123* | Administrador |
 | gerente | Gerente123* | Gerente |
 | vendedor | Vendedor123* | Vendedor |
-| cajero | Cajero123* | Cajero |
 | inventario | Inventario123* | Inventario |
+
+El rol `Cajero` fue eliminado. En bases existentes, los usuarios con ese rol se
+convierten automáticamente a `Vendedor` al iniciar la aplicación.
 
 ## Docker
 

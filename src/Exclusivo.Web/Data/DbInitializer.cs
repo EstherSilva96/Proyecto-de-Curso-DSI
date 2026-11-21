@@ -28,7 +28,6 @@ public static class DbInitializer
             new Usuario { NombreUsuario = "admin", Nombres = "Esther", Apellidos = "Silva", Rol = "Administrador", PasswordHash = PasswordHasher.Hash("Admin123*") },
             new Usuario { NombreUsuario = "gerente", Nombres = "María", Apellidos = "López", Rol = "Gerente", PasswordHash = PasswordHasher.Hash("Gerente123*") },
             new Usuario { NombreUsuario = "vendedor", Nombres = "Juan", Apellidos = "Pérez", Rol = "Vendedor", PasswordHash = PasswordHasher.Hash("Vendedor123*") },
-            new Usuario { NombreUsuario = "cajero", Nombres = "Ana", Apellidos = "Ruiz", Rol = "Cajero", PasswordHash = PasswordHasher.Hash("Cajero123*") },
             new Usuario { NombreUsuario = "inventario", Nombres = "Luis", Apellidos = "Gómez", Rol = "Inventario", PasswordHash = PasswordHasher.Hash("Inventario123*") }
         );
 
@@ -391,6 +390,10 @@ BEGIN
 
     DROP TABLE IF EXISTS ""Pagos"" CASCADE;
     ALTER TABLE ""Ventas"" DROP COLUMN IF EXISTS ""MetodoPago"";
+
+    -- El rol Cajero se elimina; los usuarios existentes pasan a Vendedor para
+    -- conservar su acceso al punto de venta y el historial de auditoria.
+    UPDATE ""Usuarios"" SET ""Rol"" = 'Vendedor' WHERE ""Rol"" = 'Cajero';
 END $$;";
         await db.Database.ExecuteSqlRawAsync(sql);
     }
