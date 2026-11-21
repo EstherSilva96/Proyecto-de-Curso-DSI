@@ -21,14 +21,22 @@ public class ProductsController : Controller
         _audit = audit;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? buscar)
     {
-        var productos = await _db.Productos
+        var termino = string.IsNullOrWhiteSpace(buscar) ? null : buscar.Trim();
+
+        var consulta = _db.Productos
+            .AsNoTracking()
             .Include(p => p.Categoria)
             .Include(p => p.Marca)
             .Include(p => p.ProveedorPrincipal)
-            .OrderBy(p => p.Nombre)
-            .ToListAsync();
+            .AsQueryable();
+
+        if (termino is not null)
+            consulta = consulta.Where(p => EF.Functions.ILike(p.Nombre, $"%{termino}%"));
+
+        var productos = await consulta.OrderBy(p => p.Nombre).ToListAsync();
+        ViewBag.Buscar = termino;
         return View(productos);
     }
 

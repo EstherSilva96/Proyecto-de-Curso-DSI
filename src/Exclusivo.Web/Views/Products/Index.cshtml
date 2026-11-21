@@ -6,10 +6,26 @@
     <h1 class="h3">Catálogo de productos</h1>
     <a class="btn btn-app" asp-action="Create">Nuevo producto</a>
 </div>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-6 col-lg-4">
+        <input class="form-control" type="search" name="buscar" value="@ViewBag.Buscar" placeholder="Buscar producto por nombre" aria-label="Buscar producto por nombre" />
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-app" type="submit">Buscar</button>
+        @if (!string.IsNullOrWhiteSpace((string?)ViewBag.Buscar))
+        {
+            <a class="btn btn-outline-secondary" asp-action="Index">Limpiar</a>
+        }
+    </div>
+</form>
 <div class="card p-3">
     <table class="table table-hover align-middle">
         <thead><tr><th>STOCK</th><th>Producto</th><th>Categoría</th><th>Marca</th><th class="text-end">Costo</th><th class="text-end">Precio</th><th>Margen</th><th>Estado</th><th></th></tr></thead>
         <tbody>
+            @if (Model.Count == 0)
+            {
+                <tr><td colspan="9" class="text-center text-muted py-4">No se encontraron productos con ese nombre.</td></tr>
+            }
             @foreach (var p in Model)
             {
                 <tr>
