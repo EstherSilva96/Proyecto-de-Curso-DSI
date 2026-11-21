@@ -47,6 +47,18 @@ public class VentaCreateViewModel
     public List<ItemVentaViewModel> Items { get; set; } = new();
 }
 
+public class ProductoPosViewModel
+{
+    public int VarianteId { get; set; }
+    public string Nombre { get; set; } = string.Empty;
+    public decimal Costo { get; set; }
+    public decimal Precio { get; set; }
+    public string? Talla { get; set; }
+    public string? Color { get; set; }
+    public int AlmacenId { get; set; }
+    public int Cantidad { get; set; }
+}
+
 public class MovimientoViewModel
 {
     public int AlmacenId { get; set; }
