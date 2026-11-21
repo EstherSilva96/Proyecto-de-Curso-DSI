@@ -16,7 +16,16 @@
                     <td>@a.Nombre</td>
                     <td>@a.Descripcion</td>
                     <td><span class="badge bg-@(a.Activo ? "success" : "secondary")">@(a.Activo ? "Activo" : "Inactivo")</span></td>
-                    <td class="text-end"><a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@a.Id">Editar</a></td>
+                    <td class="text-end text-nowrap">
+                        <a class="btn btn-sm btn-outline-primary" asp-action="Edit" asp-route-id="@a.Id">Editar</a>
+                        <form asp-action="Toggle" asp-route-id="@a.Id" method="post" class="d-inline">
+                            <button class="btn btn-sm btn-outline-secondary" type="submit">@(a.Activo ? "Desactivar" : "Activar")</button>
+                        </form>
+                        <form asp-action="Delete" asp-route-id="@a.Id" method="post" class="d-inline"
+                              onsubmit="return confirm('¿Eliminar el almacén @a.Nombre?');">
+                            <button class="btn btn-sm btn-outline-danger" type="submit">Eliminar</button>
+                        </form>
+                    </td>
                 </tr>
             }
         </tbody>
