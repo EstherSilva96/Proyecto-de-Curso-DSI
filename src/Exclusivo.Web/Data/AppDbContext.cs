@@ -9,6 +9,7 @@ public class AppDbContext : DbContext
 
     public DbSet<Usuario> Usuarios => Set<Usuario>();
     public DbSet<Proveedor> Proveedores => Set<Proveedor>();
+    public DbSet<RecomendacionCatalogo> Recomendaciones => Set<RecomendacionCatalogo>();
     public DbSet<Categoria> Categorias => Set<Categoria>();
     public DbSet<Marca> Marcas => Set<Marca>();
     public DbSet<Producto> Productos => Set<Producto>();

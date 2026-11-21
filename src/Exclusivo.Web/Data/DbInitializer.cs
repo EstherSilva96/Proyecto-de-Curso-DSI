@@ -1,3 +1,5 @@
+using System.Globalization;
+using System.Text;
 using Exclusivo.Web.Models;
 using Exclusivo.Web.Services;
 using Microsoft.EntityFrameworkCore;
@@ -13,10 +15,12 @@ public static class DbInitializer
 
         await db.Database.EnsureCreatedAsync();
         await AplicarActualizacionesEsquemaAsync(db);
+        await AsegurarRecomendacionesAsync(db);
 
         if (await db.Usuarios.AnyAsync())
         {
             await AsegurarCatalogoBaseAsync(db);
+            await SembrarCatalogoWordAsync(db);
             return;
         }
 
@@ -122,6 +126,7 @@ public static class DbInitializer
         db.Configuraciones.Add(new ConfiguracionEmpresa());
         await db.SaveChangesAsync();
         await AsegurarCatalogoBaseAsync(db);
+        await SembrarCatalogoWordAsync(db);
     }
 
     /// <summary>
@@ -162,6 +167,149 @@ public static class DbInitializer
 
         await db.SaveChangesAsync();
         await AsegurarAlmacenesAsync(db);
+    }
+
+    /// <summary>Carga las recomendaciones de control del documento Word.</summary>
+    private static async Task AsegurarRecomendacionesAsync(AppDbContext db)
+    {
+        var existentes = await db.Recomendaciones.Select(r => r.Texto).ToListAsync();
+        for (var i = 0; i < CatalogoSeed.Recomendaciones.Length; i++)
+        {
+            var (ambito, texto) = CatalogoSeed.Recomendaciones[i];
+            if (existentes.Contains(texto, StringComparer.OrdinalIgnoreCase)) continue;
+            db.Recomendaciones.Add(new RecomendacionCatalogo
+            {
+                Ambito = ambito, Texto = texto, Orden = i + 1, Activo = true
+            });
+        }
+        await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// Carga el catalogo completo del documento Word de forma idempotente.
+    /// </summary>
+    private static async Task SembrarCatalogoWordAsync(AppDbContext db)
+    {
+        var existentes = (await db.Productos.Select(p => new { p.Nombre, p.MarcaId }).ToListAsync())
+            .Select(p => (p.Nombre, p.MarcaId)).ToHashSet();
+
+        var categorias = await db.Categorias.ToDictionaryAsync(c => c.Nombre, StringComparer.OrdinalIgnoreCase);
+        var marcas = await db.Marcas.ToDictionaryAsync(m => m.Nombre, StringComparer.OrdinalIgnoreCase);
+        var almacenesIds = await db.Almacenes.Where(a => a.Activo).Select(a => a.Id).ToListAsync();
+        var proveedorId = await db.Proveedores.OrderBy(p => p.Id).Select(p => (int?)p.Id).FirstOrDefaultAsync();
+
+        var loteVariantes = new List<(VarianteProducto Variante, int Cantidad)>();
+        var indice = 0;
+        var procesados = 0;
+
+        foreach (var item in CatalogoSeed.Productos())
+        {
+            if (!categorias.TryGetValue(item.Categoria, out var categoria)) continue;
+
+            var permitidas = CatalogoHelper.MarcasPara(item.Categoria);
+            var marcaNombre = permitidas[indice % permitidas.Count];
+            if (item.Nombre.Contains("Gold Standard", StringComparison.OrdinalIgnoreCase))
+                marcaNombre = "Optimum Nutrition";
+            if (!marcas.TryGetValue(marcaNombre, out var marca)) continue;
+
+            if (existentes.Contains((item.Nombre, (int?)marca.Id)))
+            {
+                indice++;
+                continue;
+            }
+
+            var det = Determinista(item.Nombre);
+            var costo = item.EsSuplemento ? 380m + det % 900 : 180m + det % 550;
+            var precio = Math.Round(costo * (1.45m + (det % 35) / 100m), 2);
+            var codigo = $"{Prefijo(item.Categoria)}-{Prefijo(marca.Nombre)}-{indice:D4}";
+
+            var variantes = item.Variantes.Length > 0
+                ? item.Variantes.Take(2).ToList()
+                : new List<string> { "Única" };
+            if (item.EsSuplemento)
+                variantes.Add(CatalogoSeed.PresentacionesSuplementos[det % CatalogoSeed.PresentacionesSuplementos.Length]);
+            variantes = variantes.Distinct().Take(3).ToList();
+
+            var producto = new Producto
+            {
+                Stock = codigo,
+                Nombre = item.Nombre,
+                Descripcion = $"{item.Subcategoria} · {item.Categoria} · {marca.Nombre}",
+                CategoriaId = categoria.Id,
+                MarcaId = marca.Id,
+                ProveedorPrincipalId = proveedorId,
+                Costo = costo,
+                Precio = precio,
+                Estado = "Activo"
+            };
+
+            for (var v = 0; v < variantes.Count; v++)
+            {
+                var modelo = variantes[v];
+                if (modelo.Length > 80) modelo = modelo[..80];
+                var variante = new VarianteProducto
+                {
+                    Talla = "Única",
+                    Color = "Único",
+                    Modelo = modelo,
+                    CodigoBarras = $"{codigo}-{v + 1}"
+                };
+                producto.Variantes.Add(variante);
+                loteVariantes.Add((variante, 6 + (indice + v) % 12));
+            }
+
+            db.Productos.Add(producto);
+            existentes.Add((item.Nombre, (int?)marca.Id));
+            indice++;
+            procesados++;
+
+            if (procesados % 40 != 0) continue;
+
+            await GuardarLoteExistenciasAsync(db, loteVariantes, almacenesIds);
+        }
+
+        if (loteVariantes.Count > 0)
+            await GuardarLoteExistenciasAsync(db, loteVariantes, almacenesIds);
+    }
+
+    private static async Task GuardarLoteExistenciasAsync(
+        AppDbContext db,
+        List<(VarianteProducto Variante, int Cantidad)> lote,
+        List<int> almacenesIds)
+    {
+        await db.SaveChangesAsync();
+        foreach (var (variante, cantidad) in lote)
+        {
+            foreach (var almacenId in almacenesIds)
+            {
+                db.Existencias.Add(new Existencia
+                {
+                    AlmacenId = almacenId,
+                    VarianteProductoId = variante.Id,
+                    Cantidad = cantidad,
+                    Minimo = 3,
+                    Maximo = 1000
+                });
+            }
+        }
+        await db.SaveChangesAsync();
+        lote.Clear();
+    }
+
+    private static int Determinista(string texto)
+    {
+        var hash = 0;
+        foreach (var c in texto) hash = unchecked(hash * 31 + c);
+        return Math.Abs(hash);
+    }
+
+    private static string Prefijo(string texto)
+    {
+        var limpio = new string(texto.Normalize(NormalizationForm.FormD)
+            .Where(c => CharUnicodeInfo.GetUnicodeCategory(c) != UnicodeCategory.NonSpacingMark)
+            .Where(char.IsLetterOrDigit)
+            .ToArray()).ToUpperInvariant();
+        return limpio.Length >= 3 ? limpio[..3] : limpio.PadRight(3, 'X');
     }
 
     /// <summary>
@@ -231,6 +379,15 @@ BEGIN
     ALTER TABLE ""Clientes"" ADD COLUMN IF NOT EXISTS ""Nombres"" character varying(150);
     ALTER TABLE ""Clientes"" ADD COLUMN IF NOT EXISTS ""Apellidos"" character varying(150);
     ALTER TABLE ""Clientes"" ADD COLUMN IF NOT EXISTS ""Cedula"" character varying(30);
+
+    CREATE TABLE IF NOT EXISTS ""Recomendaciones"" (
+        ""Id"" serial NOT NULL,
+        ""Ambito"" character varying(40) NOT NULL,
+        ""Texto"" character varying(500) NOT NULL,
+        ""Orden"" integer NOT NULL DEFAULT 0,
+        ""Activo"" boolean NOT NULL DEFAULT true,
+        CONSTRAINT ""PK_Recomendaciones"" PRIMARY KEY (""Id"")
+    );
 
     DROP TABLE IF EXISTS ""Pagos"" CASCADE;
     ALTER TABLE ""Ventas"" DROP COLUMN IF EXISTS ""MetodoPago"";

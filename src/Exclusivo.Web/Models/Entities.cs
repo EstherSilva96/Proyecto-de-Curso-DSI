@@ -30,6 +30,16 @@ public class Proveedor
     public DateTime FechaCreacion { get; set; } = DateTime.UtcNow;
 }
 
+/// <summary>Recomendaciones de control tomadas del catalogo Word (seccion 4.3).</summary>
+public class RecomendacionCatalogo
+{
+    public int Id { get; set; }
+    [Required, MaxLength(40)] public string Ambito { get; set; } = "General";
+    [Required, MaxLength(500)] public string Texto { get; set; } = string.Empty;
+    public int Orden { get; set; }
+    public bool Activo { get; set; } = true;
+}
+
 public class Categoria
 {
     public int Id { get; set; }
