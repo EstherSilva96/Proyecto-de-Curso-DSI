@@ -123,18 +123,70 @@ public class ProductsController : Controller
         return RedirectToAction(nameof(Index));
     }
 
+    /// <summary>Actualiza el estado del producto: Activo &lt;-&gt; Descontinuado.</summary>
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Descontinuar(int id)
+    public async Task<IActionResult> Toggle(int id)
     {
         var producto = await _db.Productos.FindAsync(id);
         if (producto is null)
             return NotFound();
 
-        producto.Estado = "Descontinuado";
+        var estabaActivo = string.Equals(producto.Estado, "Activo", StringComparison.OrdinalIgnoreCase);
+        producto.Estado = estabaActivo ? "Descontinuado" : "Activo";
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(Usuario, "Descontinuar producto", "Producto", id, producto.Stock);
-        TempData["Mensaje"] = "Producto descontinuado.";
+
+        await _audit.RegistrarAsync(Usuario, "Actualizar estado de producto", "Producto", id, producto.Stock);
+        TempData["Mensaje"] = estabaActivo ? "Producto descontinuado." : "Producto activado.";
+        return RedirectToAction(nameof(Index));
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Delete(int id)
+    {
+        var producto = await _db.Productos.FindAsync(id);
+        if (producto is null)
+            return NotFound();
+
+        var variantesIds = await _db.Variantes
+            .Where(v => v.ProductoId == id)
+            .Select(v => v.Id)
+            .ToListAsync();
+
+        if (await _db.DetallesVenta.AnyAsync(d => variantesIds.Contains(d.VarianteProductoId)))
+        {
+            TempData["Error"] = "No se puede eliminar el producto porque tiene ventas registradas. Actualice su estado a Descontinuado.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        if (await _db.MovimientosInventario.AnyAsync(m => variantesIds.Contains(m.VarianteProductoId)))
+        {
+            TempData["Error"] = "No se puede eliminar el producto porque tiene movimientos de inventario registrados. Actualice su estado a Descontinuado.";
+            return RedirectToAction(nameof(Index));
+        }
+
+        var existencias = await _db.Existencias
+            .Where(e => variantesIds.Contains(e.VarianteProductoId))
+            .ToListAsync();
+        _db.Existencias.RemoveRange(existencias);
+
+        var detallesOrden = await _db.DetallesOrdenCompra
+            .Where(d => variantesIds.Contains(d.VarianteProductoId))
+            .ToListAsync();
+        _db.DetallesOrdenCompra.RemoveRange(detallesOrden);
+
+        var historial = await _db.HistorialPrecios.Where(h => h.ProductoId == id).ToListAsync();
+        _db.HistorialPrecios.RemoveRange(historial);
+
+        var variantes = await _db.Variantes.Where(v => v.ProductoId == id).ToListAsync();
+        _db.Variantes.RemoveRange(variantes);
+
+        _db.Productos.Remove(producto);
+        await _db.SaveChangesAsync();
+
+        await _audit.RegistrarAsync(Usuario, "Eliminar producto", "Producto", id, producto.Stock);
+        TempData["Mensaje"] = "Producto eliminado.";
         return RedirectToAction(nameof(Index));
     }
 
