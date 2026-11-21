@@ -101,12 +101,17 @@ public class UsersController : Controller
         NormalizarUsuario(usuario);
         ModelState.Remove("PasswordHash");
 
-        var existente = await _db.Usuarios
-            .AsNoTracking()
-            .FirstOrDefaultAsync(u => u.Id == id);
-
+        var existente = await _db.Usuarios.FirstOrDefaultAsync(u => u.Id == id);
         if (existente is null)
             return NotFound();
+
+        var esPropio = EsUsuarioActual(existente);
+        if (esPropio)
+        {
+            usuario.Rol = existente.Rol;
+            usuario.Activo = existente.Activo;
+            ModelState.Remove(nameof(Usuario.Rol));
+        }
 
         var nombreUsuarioLower = usuario.NombreUsuario.ToLower();
 
@@ -135,13 +140,15 @@ public class UsersController : Controller
         if (!ModelState.IsValid)
             return Formulario(usuario);
 
-        usuario.PasswordHash = string.IsNullOrWhiteSpace(clave)
+        existente.NombreUsuario = usuario.NombreUsuario;
+        existente.Nombres = usuario.Nombres;
+        existente.Apellidos = usuario.Apellidos;
+        existente.Rol = usuario.Rol;
+        existente.Activo = usuario.Activo;
+        existente.PasswordHash = string.IsNullOrWhiteSpace(clave)
             ? existente.PasswordHash
             : PasswordHasher.Hash(clave);
-        usuario.FechaCreacion = existente.FechaCreacion;
-        usuario.UltimoAcceso = existente.UltimoAcceso;
 
-        _db.Usuarios.Update(usuario);
         await _db.SaveChangesAsync();
 
         await _audit.RegistrarAsync(
@@ -151,7 +158,9 @@ public class UsersController : Controller
             id,
             usuario.NombreUsuario);
 
-        TempData["Mensaje"] = "Usuario actualizado.";
+        TempData["Mensaje"] = esPropio
+            ? "Usuario actualizado. Su rol solo puede ser modificado por el ingeniero de sistemas."
+            : "Usuario actualizado.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -162,6 +171,12 @@ public class UsersController : Controller
         var usuario = await _db.Usuarios.FindAsync(id);
         if (usuario is null)
             return NotFound();
+
+        if (EsUsuarioActual(usuario))
+        {
+            TempData["Error"] = "No puede desactivar su propio usuario. Consulte con el ingeniero de sistemas para modificar este rol.";
+            return RedirectToAction(nameof(Index));
+        }
 
         usuario.Activo = !usuario.Activo;
         await _db.SaveChangesAsync();
@@ -179,6 +194,9 @@ public class UsersController : Controller
 
         return RedirectToAction(nameof(Index));
     }
+
+    private bool EsUsuarioActual(Usuario usuario) =>
+        string.Equals(usuario.NombreUsuario, UsuarioActual, StringComparison.OrdinalIgnoreCase);
 
     private static void NormalizarUsuario(Usuario usuario)
     {
@@ -199,6 +217,7 @@ public class UsersController : Controller
             })
             .ToList();
 
+        ViewBag.EsPropio = usuario.Id > 0 && EsUsuarioActual(usuario);
         return View("Form", usuario);
     }
 }
