@@ -439,24 +439,45 @@ public static class DbInitializer
             .Where(e => e.AlmacenId == destino.Id || otrosIds.Contains(e.AlmacenId))
             .ToListAsync();
 
-        var porVariante = existencias
+        var totales = new Dictionary<int, (int Cantidad, int Minimo, int Maximo)>();
+        foreach (var existencia in existencias)
+        {
+            if (!totales.TryGetValue(existencia.VarianteProductoId, out var total))
+                total = (0, 0, 0);
+            total.Cantidad += existencia.Cantidad;
+            total.Minimo = Math.Max(total.Minimo, existencia.Minimo);
+            total.Maximo = Math.Max(total.Maximo, existencia.Maximo);
+            totales[existencia.VarianteProductoId] = total;
+        }
+
+        var destinoPorVariante = existencias
             .Where(e => e.AlmacenId == destino.Id)
             .GroupBy(e => e.VarianteProductoId)
             .ToDictionary(g => g.Key, g => g.First());
 
-        foreach (var existencia in existencias.Where(e => e.AlmacenId != destino.Id))
+        // Se eliminan primero las existencias de los almacenes anteriores para no
+        // chocar con el indice unico (AlmacenId, VarianteProductoId).
+        db.Existencias.RemoveRange(existencias.Where(e => e.AlmacenId != destino.Id));
+        await db.SaveChangesAsync();
+
+        foreach (var (varianteId, total) in totales)
         {
-            if (porVariante.TryGetValue(existencia.VarianteProductoId, out var destinoExistencia))
+            if (destinoPorVariante.TryGetValue(varianteId, out var existenciaDestino))
             {
-                destinoExistencia.Cantidad += existencia.Cantidad;
-                destinoExistencia.Minimo = Math.Max(destinoExistencia.Minimo, existencia.Minimo);
-                destinoExistencia.Maximo = Math.Max(destinoExistencia.Maximo, existencia.Maximo);
-                db.Existencias.Remove(existencia);
+                existenciaDestino.Cantidad = total.Cantidad;
+                existenciaDestino.Minimo = total.Minimo;
+                existenciaDestino.Maximo = total.Maximo;
             }
             else
             {
-                existencia.AlmacenId = destino.Id;
-                porVariante[existencia.VarianteProductoId] = existencia;
+                db.Existencias.Add(new Existencia
+                {
+                    AlmacenId = destino.Id,
+                    VarianteProductoId = varianteId,
+                    Cantidad = total.Cantidad,
+                    Minimo = total.Minimo,
+                    Maximo = total.Maximo
+                });
             }
         }
 
