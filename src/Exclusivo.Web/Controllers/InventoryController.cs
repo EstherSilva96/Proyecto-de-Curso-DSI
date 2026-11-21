@@ -75,7 +75,7 @@ public class InventoryController : Controller
 
         var resultado = await _inventario.RegistrarMovimientoAsync(
             model.AlmacenId, model.VarianteProductoId, model.Cantidad,
-            model.Tipo, model.Motivo, model.DocumentoReferencia, Usuario);
+            model.Tipo, model.Motivo, null, Usuario);
 
         if (!resultado.Ok)
         {
@@ -93,9 +93,6 @@ public class InventoryController : Controller
     {
         model.Tipo = model.Tipo?.Trim() ?? string.Empty;
         model.Motivo = string.IsNullOrWhiteSpace(model.Motivo) ? null : model.Motivo.Trim();
-        model.DocumentoReferencia = string.IsNullOrWhiteSpace(model.DocumentoReferencia)
-            ? null
-            : model.DocumentoReferencia.Trim();
     }
 
     private async Task ValidarMovimientoAsync(MovimientoViewModel model)

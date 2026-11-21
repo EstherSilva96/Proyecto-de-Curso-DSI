@@ -66,7 +66,6 @@ public class MovimientoViewModel
     public int Cantidad { get; set; }
     [MaxLength(30)] public string Tipo { get; set; } = "Entrada";
     [MaxLength(250)] public string? Motivo { get; set; }
-    [MaxLength(100)] public string? DocumentoReferencia { get; set; }
 }
 
 public class DashboardViewModel

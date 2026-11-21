@@ -10,9 +10,8 @@
             <div class="col-md-6"><label asp-for="Tipo" class="form-label"></label><select asp-for="Tipo" asp-items="ViewBag.Tipos" class="form-select"></select></div>
             <div class="col-md-6"><label asp-for="AlmacenId" class="form-label"></label><select asp-for="AlmacenId" asp-items="ViewBag.Almacenes" class="form-select"><option value="">--</option></select><span asp-validation-for="AlmacenId" class="text-danger small"></span></div>
             <div class="col-12"><label asp-for="VarianteProductoId" class="form-label"></label><select asp-for="VarianteProductoId" asp-items="ViewBag.Variantes" class="form-select"><option value="">--</option></select><span asp-validation-for="VarianteProductoId" class="text-danger small"></span></div>
-            <div class="col-md-4"><label asp-for="Cantidad" class="form-label"></label><input asp-for="Cantidad" class="form-control" type="number" /><span asp-validation-for="Cantidad" class="text-danger small"></span></div>
-            <div class="col-md-8"><label asp-for="DocumentoReferencia" class="form-label"></label><input asp-for="DocumentoReferencia" class="form-control" /></div>
-            <div class="col-12"><label asp-for="Motivo" class="form-label"></label><input asp-for="Motivo" class="form-control" /></div>
+            <div class="col-md-6"><label asp-for="Cantidad" class="form-label"></label><input asp-for="Cantidad" class="form-control" type="number" /><span asp-validation-for="Cantidad" class="text-danger small"></span></div>
+            <div class="col-12"><label asp-for="Motivo" class="form-label"></label><input asp-for="Motivo" class="form-control" /><span asp-validation-for="Motivo" class="text-danger small"></span></div>
         </div>
         <div class="mt-4">
             <button class="btn btn-app" type="submit">Registrar</button>
