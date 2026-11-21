@@ -11,6 +11,26 @@ public class LoginViewModel
     public string Clave { get; set; } = string.Empty;
 }
 
+public class ClienteFormViewModel
+{
+    public int Id { get; set; }
+
+    [Required, MaxLength(150), Display(Name = "Nombres")]
+    public string Nombres { get; set; } = string.Empty;
+
+    [Required, MaxLength(150), Display(Name = "Apellidos")]
+    public string Apellidos { get; set; } = string.Empty;
+
+    [Required, MaxLength(30), Display(Name = "Número de cédula")]
+    public string Cedula { get; set; } = string.Empty;
+
+    [MaxLength(30), Display(Name = "Teléfono")]
+    public string? Telefono { get; set; }
+
+    [MaxLength(250), Display(Name = "Dirección")]
+    public string? Direccion { get; set; }
+}
+
 public class ItemVentaViewModel
 {
     public int VarianteProductoId { get; set; }

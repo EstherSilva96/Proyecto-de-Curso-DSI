@@ -143,6 +143,23 @@ public static class DbInitializer
                 db.Marcas.Add(new Marca { Nombre = marca });
         }
 
+        var clienteGeneral = await db.Clientes.FirstOrDefaultAsync(c => c.Nombre == "Cliente General");
+        if (clienteGeneral is null)
+        {
+            db.Clientes.Add(new Cliente
+            {
+                Nombre = "Cliente General", Nombres = "Cliente", Apellidos = "General",
+                Cedula = "000-000000-0000", Documento = "000-000000-0000"
+            });
+        }
+        else if (string.IsNullOrWhiteSpace(clienteGeneral.Cedula))
+        {
+            clienteGeneral.Nombres = "Cliente";
+            clienteGeneral.Apellidos = "General";
+            clienteGeneral.Cedula = "000-000000-0000";
+            clienteGeneral.Documento = "000-000000-0000";
+        }
+
         await db.SaveChangesAsync();
         await AsegurarAlmacenesAsync(db);
     }
@@ -210,6 +227,10 @@ BEGIN
                WHERE table_name = 'Productos' AND column_name = 'Stock') THEN
         ALTER TABLE ""Productos"" RENAME COLUMN ""Sku"" TO ""Stock"";
     END IF;
+
+    ALTER TABLE ""Clientes"" ADD COLUMN IF NOT EXISTS ""Nombres"" character varying(150);
+    ALTER TABLE ""Clientes"" ADD COLUMN IF NOT EXISTS ""Apellidos"" character varying(150);
+    ALTER TABLE ""Clientes"" ADD COLUMN IF NOT EXISTS ""Cedula"" character varying(30);
 END $$;";
         await db.Database.ExecuteSqlRawAsync(sql);
     }

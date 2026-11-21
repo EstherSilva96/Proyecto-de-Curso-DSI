@@ -10,7 +10,12 @@
         <div class="row g-3">
             <div class="col-md-4">
                 <label asp-for="ClienteId" class="form-label">Cliente</label>
-                <select asp-for="ClienteId" asp-items="ViewBag.Clientes" class="form-select"><option value="">Cliente general</option></select>
+                <div class="input-group">
+                    <select asp-for="ClienteId" asp-items="ViewBag.Clientes" class="form-select" id="ClienteId"><option value="">Cliente general</option></select>
+                    <button class="btn btn-outline-primary" type="button" id="btnNuevoCliente" title="Nuevo cliente"><i class="bi bi-person-plus"></i></button>
+                    <button class="btn btn-outline-secondary" type="button" id="btnEditarCliente" title="Editar datos del cliente"><i class="bi bi-pencil"></i></button>
+                </div>
+                <div class="form-text" id="clienteSeleccionado">Seleccione un cliente guardado o registre uno nuevo.</div>
             </div>
             <div class="col-md-4">
                 <label asp-for="AlmacenId" class="form-label">Almacén</label>
@@ -56,3 +61,114 @@
         <a class="btn btn-outline-secondary" asp-controller="Home" asp-action="Index">Cancelar</a>
     </div>
 </form>
+
+<div class="modal fade" id="modalCliente" tabindex="-1" aria-labelledby="tituloCliente" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form id="formCliente" asp-controller="Customers" asp-action="Guardar" method="post">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="tituloCliente">Nuevo cliente</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="hidden" id="ClienteIdForm" name="Id" value="0" />
+                    <div id="erroresCliente" class="alert alert-danger d-none small"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label for="ClienteNombres" class="form-label">Nombres</label>
+                            <input id="ClienteNombres" name="Nombres" class="form-control" maxlength="150" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ClienteApellidos" class="form-label">Apellidos</label>
+                            <input id="ClienteApellidos" name="Apellidos" class="form-control" maxlength="150" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ClienteCedula" class="form-label">Número de cédula</label>
+                            <input id="ClienteCedula" name="Cedula" class="form-control" maxlength="30" required />
+                        </div>
+                        <div class="col-md-6">
+                            <label for="ClienteTelefono" class="form-label">Teléfono</label>
+                            <input id="ClienteTelefono" name="Telefono" class="form-control" maxlength="30" />
+                        </div>
+                        <div class="col-12">
+                            <label for="ClienteDireccion" class="form-label">Dirección</label>
+                            <input id="ClienteDireccion" name="Direccion" class="form-control" maxlength="250" />
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-app">Guardar cliente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+<script>
+(function () {
+    var modalEl = document.getElementById('modalCliente');
+    var form = document.getElementById('formCliente');
+    var select = document.getElementById('ClienteId');
+    var info = document.getElementById('clienteSeleccionado');
+    if (!modalEl || !form || !select) return;
+
+    var modal = new bootstrap.Modal(modalEl);
+    var errores = document.getElementById('erroresCliente');
+
+    function limpiar() {
+        form.reset();
+        document.getElementById('ClienteIdForm').value = '0';
+        document.getElementById('tituloCliente').textContent = 'Nuevo cliente';
+        errores.classList.add('d-none');
+        errores.innerHTML = '';
+    }
+
+    function mostrarErrores(mensajes) {
+        errores.innerHTML = mensajes.map(function (m) { return '<div>' + m + '</div>'; }).join('');
+        errores.classList.remove('d-none');
+    }
+
+    document.getElementById('btnNuevoCliente').addEventListener('click', function () {
+        limpiar();
+        modal.show();
+    });
+
+    document.getElementById('btnEditarCliente').addEventListener('click', async function () {
+        if (!select.value) { alert('Seleccione primero un cliente guardado.'); return; }
+        var response = await fetch('/Customers/Obtener/' + select.value);
+        if (!response.ok) { alert('No se pudo cargar el cliente.'); return; }
+        var d = await response.json();
+        limpiar();
+        document.getElementById('ClienteIdForm').value = d.id;
+        document.getElementById('ClienteNombres').value = d.nombres || '';
+        document.getElementById('ClienteApellidos').value = d.apellidos || '';
+        document.getElementById('ClienteCedula').value = d.cedula || '';
+        document.getElementById('ClienteTelefono').value = d.telefono || '';
+        document.getElementById('ClienteDireccion').value = d.direccion || '';
+        document.getElementById('tituloCliente').textContent = 'Editar cliente';
+        modal.show();
+    });
+
+    form.addEventListener('submit', async function (e) {
+        e.preventDefault();
+        errores.classList.add('d-none');
+        var response = await fetch(form.action, { method: 'POST', body: new FormData(form) });
+        var data = await response.json();
+        if (!data.ok) { mostrarErrores(data.errores || ['No se pudo guardar el cliente.']); return; }
+
+        var opcion = Array.from(select.options).find(function (o) { return o.value === String(data.id); });
+        if (!opcion) {
+            opcion = document.createElement('option');
+            opcion.value = data.id;
+            select.appendChild(opcion);
+        }
+        opcion.textContent = data.nombre;
+        select.value = data.id;
+        info.textContent = 'Cliente: ' + data.nombre + (data.mensaje ? ' · ' + data.mensaje : '');
+        modal.hide();
+    });
+})();
+</script>
+}
