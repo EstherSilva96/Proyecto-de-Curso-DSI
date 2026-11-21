@@ -9,7 +9,12 @@
         <div asp-validation-summary="All" class="text-danger small"></div>
         <div class="row g-3">
             <div class="col-md-6"><label asp-for="Stock" class="form-label"></label><input asp-for="Stock" class="form-control" /><span asp-validation-for="Stock" class="text-danger small"></span></div>
-            <div class="col-md-6"><label asp-for="Nombre" class="form-label"></label><input asp-for="Nombre" class="form-control" /><span asp-validation-for="Nombre" class="text-danger small"></span></div>
+            <div class="col-md-6">
+                <label asp-for="Nombre" class="form-label"></label>
+                <input asp-for="Nombre" class="form-control" list="nombresSugeridos" autocomplete="off" placeholder="Seleccione categoría y marca para ver sugerencias" />
+                <datalist id="nombresSugeridos"></datalist>
+                <span asp-validation-for="Nombre" class="text-danger small"></span>
+            </div>
             <div class="col-12"><label asp-for="Descripcion" class="form-label"></label><textarea asp-for="Descripcion" class="form-control" rows="2"></textarea></div>
             <div class="col-md-4"><label asp-for="CategoriaId" class="form-label"></label><select asp-for="CategoriaId" asp-items="ViewBag.Categorias" class="form-select"><option value="">--</option></select></div>
             <div class="col-md-4"><label asp-for="MarcaId" class="form-label"></label><select asp-for="MarcaId" asp-items="ViewBag.Marcas" class="form-select"><option value="">--</option></select></div>
@@ -29,9 +34,22 @@
 <script>
 (function () {
     var marcasPorCategoria = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.MarcasPorCategoria));
+    var nombresSugeridos = @Html.Raw(System.Text.Json.JsonSerializer.Serialize(ViewBag.NombresSugeridos));
     var categoria = document.getElementById('CategoriaId');
     var marca = document.getElementById('MarcaId');
+    var listaNombres = document.getElementById('nombresSugeridos');
     if (!categoria || !marca) return;
+
+    function actualizarNombres() {
+        if (!listaNombres) return;
+        var nombres = (nombresSugeridos[categoria.value] || {})[marca.value] || [];
+        listaNombres.innerHTML = '';
+        nombres.forEach(function (nombre) {
+            var op = document.createElement('option');
+            op.value = nombre;
+            listaNombres.appendChild(op);
+        });
+    }
 
     function actualizarMarcas() {
         var seleccionada = marca.value;
@@ -44,9 +62,11 @@
             marca.appendChild(op);
         });
         marca.value = lista.some(function (m) { return String(m.id) === seleccionada; }) ? seleccionada : '';
+        actualizarNombres();
     }
 
     categoria.addEventListener('change', actualizarMarcas);
+    marca.addEventListener('change', actualizarNombres);
     actualizarMarcas();
 })();
 </script>

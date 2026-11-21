@@ -167,6 +167,11 @@ public class ProductsController : Controller
                 .Where(m => m is not null)
                 .Select(m => new { id = m!.Id, nombre = m.Nombre })
                 .ToList());
+        ViewBag.NombresSugeridos = categorias.ToDictionary(
+            c => c.Id,
+            c => marcas.ToDictionary(
+                m => m.Id,
+                m => CatalogoHelper.NombresPara(c.Nombre, m.Nombre)));
         ViewBag.Proveedores = new SelectList(await _db.Proveedores.Where(p => p.Activo).ToListAsync(), "Id", "NombreOrganizacion", producto.ProveedorPrincipalId);
         return View("Form", producto);
     }
