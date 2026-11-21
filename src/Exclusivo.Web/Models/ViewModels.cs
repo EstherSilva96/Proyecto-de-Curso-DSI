@@ -35,6 +35,14 @@ public class ClienteFormViewModel
     [StringLength(250, ErrorMessage = "La dirección no puede superar 250 caracteres.")]
     [Display(Name = "Dirección")]
     public string? Direccion { get; set; }
+
+    [EmailAddress(ErrorMessage = "Ingrese un correo electrónico válido.")]
+    [StringLength(150)]
+    [Display(Name = "Correo electrónico")]
+    public string? Correo { get; set; }
+
+    [Display(Name = "Activo")]
+    public bool Activo { get; set; } = true;
 }
 
 /// <summary>

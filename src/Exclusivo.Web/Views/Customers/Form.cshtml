@@ -1,0 +1,53 @@
+@model ClienteFormViewModel
+@{
+    ViewData["Title"] = Model.Id == 0 ? "Nuevo cliente" : "Editar cliente";
+}
+<h1 class="h3 mb-3">@ViewData["Title"]</h1>
+<div class="card p-4" style="max-width: 820px">
+    <form asp-action="@(Model.Id == 0 ? "Create" : "Edit")" method="post">
+        <input type="hidden" asp-for="Id" />
+        <div asp-validation-summary="All" class="text-danger small"></div>
+        <div class="row g-3">
+            <div class="col-md-6">
+                <label asp-for="Nombres" class="form-label"></label>
+                <input asp-for="Nombres" class="form-control" />
+                <span asp-validation-for="Nombres" class="text-danger small"></span>
+            </div>
+            <div class="col-md-6">
+                <label asp-for="Apellidos" class="form-label"></label>
+                <input asp-for="Apellidos" class="form-control" />
+                <span asp-validation-for="Apellidos" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Cedula" class="form-label"></label>
+                <input asp-for="Cedula" class="form-control" placeholder="000-000000-0000" />
+                <span asp-validation-for="Cedula" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Telefono" class="form-label"></label>
+                <input asp-for="Telefono" class="form-control" placeholder="8888-1111" />
+                <span asp-validation-for="Telefono" class="text-danger small"></span>
+            </div>
+            <div class="col-md-4">
+                <label asp-for="Correo" class="form-label"></label>
+                <input asp-for="Correo" class="form-control" type="email" />
+                <span asp-validation-for="Correo" class="text-danger small"></span>
+            </div>
+            <div class="col-12">
+                <label asp-for="Direccion" class="form-label"></label>
+                <input asp-for="Direccion" class="form-control" />
+                <span asp-validation-for="Direccion" class="text-danger small"></span>
+            </div>
+            <div class="col-12">
+                <div class="form-check">
+                    <input asp-for="Activo" class="form-check-input" />
+                    <label asp-for="Activo" class="form-check-label"></label>
+                </div>
+            </div>
+        </div>
+        <div class="mt-4">
+            <button class="btn btn-app" type="submit">Guardar</button>
+            <a class="btn btn-outline-secondary" asp-action="Index">Cancelar</a>
+        </div>
+    </form>
+</div>

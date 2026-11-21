@@ -10,6 +10,7 @@
     Func<string, string> activo = c => string.Equals(controller, c, StringComparison.OrdinalIgnoreCase) ? "active" : "";
     var homeActivo = activo("Home");
     var salesActivo = activo("Sales");
+    var customersActivo = activo("Customers");
     var inventoryActivo = activo("Inventory");
     var productsActivo = activo("Products");
     var warehousesActivo = activo("Warehouses");
@@ -52,6 +53,9 @@
                 </a>
                 <a class="nav-link @salesActivo" asp-controller="Sales" asp-action="Index" data-sidebar-close>
                     <i class="bi bi-receipt"></i><span>Ventas</span>
+                </a>
+                <a class="nav-link @customersActivo" asp-controller="Customers" asp-action="Index" data-sidebar-close>
+                    <i class="bi bi-people"></i><span>Clientes</span>
                 </a>
             }
 
