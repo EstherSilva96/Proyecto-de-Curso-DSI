@@ -61,7 +61,7 @@ public class SalesController : Controller
     {
         var venta = await _db.Ventas
             .Include(v => v.Detalles).ThenInclude(d => d.VarianteProducto).ThenInclude(vp => vp.Producto)
-            .Include(v => v.Cliente).Include(v => v.Usuario).Include(v => v.Pagos)
+            .Include(v => v.Cliente).Include(v => v.Usuario)
             .FirstOrDefaultAsync(v => v.Id == id);
         return venta is null ? NotFound() : View(venta);
     }

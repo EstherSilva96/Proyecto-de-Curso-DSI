@@ -42,7 +42,6 @@ public class ItemVentaViewModel
 public class VentaCreateViewModel
 {
     public int? ClienteId { get; set; }
-    [MaxLength(30)] public string MetodoPago { get; set; } = "Efectivo";
     public decimal Descuento { get; set; }
     public int AlmacenId { get; set; }
     public List<ItemVentaViewModel> Items { get; set; } = new();

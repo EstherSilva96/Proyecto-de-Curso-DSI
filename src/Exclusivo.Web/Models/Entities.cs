@@ -163,10 +163,8 @@ public class Venta
     [Column(TypeName = "numeric(12,2)")] public decimal Impuesto { get; set; }
     [Column(TypeName = "numeric(12,2)")] public decimal Total { get; set; }
     [MaxLength(20)] public string Estado { get; set; } = "Confirmada";
-    [MaxLength(30)] public string MetodoPago { get; set; } = "Efectivo";
     [MaxLength(250)] public string? MotivoAnulacion { get; set; }
     public ICollection<DetalleVenta> Detalles { get; set; } = new List<DetalleVenta>();
-    public ICollection<Pago> Pagos { get; set; } = new List<Pago>();
 }
 
 public class DetalleVenta
@@ -180,17 +178,6 @@ public class DetalleVenta
     [Column(TypeName = "numeric(12,2)")] public decimal PrecioUnitario { get; set; }
     [Column(TypeName = "numeric(12,2)")] public decimal CostoUnitario { get; set; }
     [Column(TypeName = "numeric(12,2)")] public decimal Subtotal { get; set; }
-}
-
-public class Pago
-{
-    public int Id { get; set; }
-    public int VentaId { get; set; }
-    public Venta Venta { get; set; } = null!;
-    [Column(TypeName = "numeric(12,2)")] public decimal Monto { get; set; }
-    [MaxLength(30)] public string Metodo { get; set; } = "Efectivo";
-    [MaxLength(100)] public string? Referencia { get; set; }
-    public DateTime Fecha { get; set; } = DateTime.UtcNow;
 }
 
 public class OrdenCompra

@@ -231,6 +231,9 @@ BEGIN
     ALTER TABLE ""Clientes"" ADD COLUMN IF NOT EXISTS ""Nombres"" character varying(150);
     ALTER TABLE ""Clientes"" ADD COLUMN IF NOT EXISTS ""Apellidos"" character varying(150);
     ALTER TABLE ""Clientes"" ADD COLUMN IF NOT EXISTS ""Cedula"" character varying(30);
+
+    DROP TABLE IF EXISTS ""Pagos"" CASCADE;
+    ALTER TABLE ""Ventas"" DROP COLUMN IF EXISTS ""MetodoPago"";
 END $$;";
         await db.Database.ExecuteSqlRawAsync(sql);
     }
