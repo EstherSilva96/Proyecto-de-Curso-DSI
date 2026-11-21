@@ -90,7 +90,6 @@ public class MovimientoViewModel
     [Range(1, int.MaxValue, ErrorMessage = "Seleccione una variante válida.")]
     public int VarianteProductoId { get; set; }
 
-    [Range(1, int.MaxValue, ErrorMessage = "La cantidad debe ser mayor que cero.")]
     public int Cantidad { get; set; }
 
     [Required, StringLength(30)]
