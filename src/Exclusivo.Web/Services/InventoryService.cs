@@ -42,8 +42,12 @@ public class InventoryService
         };
 
         if (delta == 0) return (false, "Tipo de movimiento no válido.");
+        if (existencia.Minimo > existencia.Maximo)
+            return (false, "El mínimo no puede ser mayor que el máximo del almacén.");
         if (existencia.Cantidad + delta < 0)
             return (false, "No hay existencias suficientes para realizar la salida.");
+        if (!string.IsNullOrWhiteSpace(motivo) && motivo.Length > 250)
+            return (false, "El motivo no puede superar 250 caracteres.");
 
         existencia.Cantidad += delta;
 

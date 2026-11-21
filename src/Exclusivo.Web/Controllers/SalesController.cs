@@ -224,10 +224,14 @@ public class SalesController : Controller
 
         if (string.IsNullOrWhiteSpace(model.Nombre))
             return Json(new { ok = false, mensaje = "El nombre es obligatorio." });
+        if (model.Nombre.Trim().Length < 3 || model.Nombre.Trim().Length > 150)
+            return Json(new { ok = false, mensaje = "El nombre debe tener entre 3 y 150 caracteres." });
         if (model.Precio <= 0)
             return Json(new { ok = false, mensaje = "El precio debe ser mayor que cero." });
         if (model.Costo < 0)
             return Json(new { ok = false, mensaje = "El costo no puede ser negativo." });
+        if (model.Precio < model.Costo)
+            return Json(new { ok = false, mensaje = "El precio no puede ser menor que el costo." });
 
         var producto = variante.Producto;
         if (producto.Precio != model.Precio || producto.Costo != model.Costo)

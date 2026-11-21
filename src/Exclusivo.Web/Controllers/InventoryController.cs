@@ -124,6 +124,23 @@ public class InventoryController : Controller
                 nameof(MovimientoViewModel.Cantidad),
                 "La cantidad debe ser mayor que cero.");
         }
+
+        if (model.Tipo is "Salida" or "Ajuste" && string.IsNullOrWhiteSpace(model.Motivo))
+        {
+            ModelState.AddModelError(
+                nameof(MovimientoViewModel.Motivo),
+                "Indique el motivo de la salida o del ajuste.");
+        }
+
+        if (model.Tipo is "Salida" or "Ajuste" &&
+            !await _db.Existencias.AnyAsync(e =>
+                e.VarianteProductoId == model.VarianteProductoId &&
+                e.AlmacenId == model.AlmacenId))
+        {
+            ModelState.AddModelError(
+                nameof(MovimientoViewModel.VarianteProductoId),
+                "La variante no tiene existencias registradas en ese almacén.");
+        }
     }
 
     private async Task<IActionResult> FormularioAsync(MovimientoViewModel model)

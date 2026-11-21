@@ -11,6 +11,8 @@ namespace Exclusivo.Web.Controllers;
 [Authorize(Roles = "Administrador,Gerente,Inventario")]
 public class ProductsController : Controller
 {
+    private static readonly string[] TiposTalla = ["Única", "S", "M", "L", "XL", "XXL"];
+
     private readonly AppDbContext _db;
     private readonly AuditService _audit;
     private string Usuario => AuthService.ObtenerUsuario(HttpContext) ?? "sistema";
@@ -185,6 +187,21 @@ public class ProductsController : Controller
             ModelState.AddModelError(
                 nameof(Producto.Costo),
                 "El costo no puede ser negativo.");
+        }
+        else if (producto.Precio > 0 && producto.Precio < producto.Costo)
+        {
+            ModelState.AddModelError(
+                nameof(Producto.Precio),
+                "El precio no puede ser menor que el costo; la venta generaría pérdidas.");
+        }
+
+        if (!string.IsNullOrWhiteSpace(producto.Talla) &&
+            !TiposTalla.Contains(producto.Talla.Trim(), StringComparer.OrdinalIgnoreCase) &&
+            !producto.Talla.Trim().All(char.IsDigit))
+        {
+            ModelState.AddModelError(
+                nameof(Producto.Talla),
+                "Use Única, S, M, L, XL, XXL o una talla numérica.");
         }
 
         if (producto.CategoriaId <= 0 || !await _db.Categorias.AnyAsync(c => c.Id == producto.CategoriaId && c.Activo))
