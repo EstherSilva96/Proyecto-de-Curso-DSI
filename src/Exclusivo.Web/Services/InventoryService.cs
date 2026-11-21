@@ -56,7 +56,7 @@ public class InventoryService
             Tipo = tipo,
             AlmacenId = almacenId,
             VarianteProductoId = varianteProductoId,
-            Cantidad = Math.Abs(cantidad),
+            Cantidad = tipo == "Ajuste" ? cantidad : Math.Abs(cantidad),
             Motivo = motivo,
             DocumentoReferencia = documento,
             UsuarioId = await _db.Usuarios.Where(u => u.NombreUsuario == usuario).Select(u => (int?)u.Id).FirstOrDefaultAsync()
