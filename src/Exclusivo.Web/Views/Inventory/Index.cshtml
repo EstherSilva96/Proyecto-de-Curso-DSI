@@ -10,10 +10,26 @@
         <a class="btn btn-app" asp-action="Create">Registrar movimiento</a>
     }
 </div>
+<form method="get" class="row g-2 mb-3">
+    <div class="col-md-6 col-lg-4">
+        <input class="form-control" type="search" name="buscar" value="@ViewBag.Buscar" placeholder="Buscar producto por nombre" aria-label="Buscar producto por nombre" />
+    </div>
+    <div class="col-auto">
+        <button class="btn btn-app" type="submit">Buscar</button>
+        @if (!string.IsNullOrWhiteSpace((string?)ViewBag.Buscar))
+        {
+            <a class="btn btn-outline-secondary" asp-action="Index">Limpiar</a>
+        }
+    </div>
+</form>
 <div class="card p-3 mb-4">
     <table class="table align-middle">
         <thead><tr><th>Producto</th><th>Variante</th><th>Almacén</th><th class="text-end">Existencia</th><th class="text-end">Mínimo</th><th>Estado</th></tr></thead>
         <tbody>
+            @if (Model.Count == 0)
+            {
+                <tr><td colspan="6" class="text-center text-muted py-4">No se encontraron existencias para ese producto.</td></tr>
+            }
             @foreach (var e in Model)
             {
                 var alerta = e.Cantidad <= e.Minimo;
@@ -38,6 +54,10 @@
     <table class="table table-sm align-middle">
         <thead><tr><th>Fecha</th><th>Tipo</th><th>Producto</th><th class="text-end">Cantidad</th><th>Motivo</th><th>Documento</th></tr></thead>
         <tbody>
+            @if (movimientos.Count == 0)
+            {
+                <tr><td colspan="6" class="text-center text-muted py-4">No hay movimientos para ese producto.</td></tr>
+            }
             @foreach (var m in movimientos)
             {
                 <tr>

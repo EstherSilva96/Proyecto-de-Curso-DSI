@@ -25,17 +25,37 @@ public class InventoryController : Controller
         _audit = audit;
     }
 
-    public async Task<IActionResult> Index()
+    public async Task<IActionResult> Index(string? buscar)
     {
-        var existencias = await _db.Existencias
+        var termino = string.IsNullOrWhiteSpace(buscar) ? null : buscar.Trim();
+
+        var consultaExistencias = _db.Existencias
+            .AsNoTracking()
             .Include(e => e.Almacen)
             .Include(e => e.VarianteProducto).ThenInclude(v => v.Producto)
+            .AsQueryable();
+
+        if (termino is not null)
+            consultaExistencias = consultaExistencias
+                .Where(e => EF.Functions.ILike(e.VarianteProducto.Producto.Nombre, $"%{termino}%"));
+
+        var existencias = await consultaExistencias
             .OrderBy(e => e.VarianteProducto.Producto.Nombre)
             .ToListAsync();
-        ViewBag.Movimientos = await _db.MovimientosInventario
+
+        var consultaMovimientos = _db.MovimientosInventario
+            .AsNoTracking()
             .Include(m => m.VarianteProducto).ThenInclude(v => v.Producto)
             .Include(m => m.Almacen)
+            .AsQueryable();
+
+        if (termino is not null)
+            consultaMovimientos = consultaMovimientos
+                .Where(m => EF.Functions.ILike(m.VarianteProducto.Producto.Nombre, $"%{termino}%"));
+
+        ViewBag.Movimientos = await consultaMovimientos
             .OrderByDescending(m => m.Fecha).Take(20).ToListAsync();
+        ViewBag.Buscar = termino;
         return View(existencias);
     }
 
