@@ -83,7 +83,6 @@ public class Producto
     [Column(TypeName = "numeric(12,2)")]
     [Range(typeof(decimal), "0.01", "9999999999.99", ErrorMessage = "El precio debe ser mayor que cero.")]
     public decimal Precio { get; set; }
-    [StringLength(300)] public string? ImagenUrl { get; set; }
     [NotMapped, StringLength(10)]
     [RegularExpression(@"^$|^(?:Única|S|M|L|XL|XXL|[0-9]{1,2})$",
         ErrorMessage = "Use Única, S, M, L, XL, XXL o una talla numérica.")]

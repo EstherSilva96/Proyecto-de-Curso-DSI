@@ -512,6 +512,9 @@ BEGIN
     -- El rol Cajero se elimina; los usuarios existentes pasan a Vendedor para
     -- conservar su acceso al punto de venta y el historial de auditoria.
     UPDATE ""Usuarios"" SET ""Rol"" = 'Vendedor' WHERE ""Rol"" = 'Cajero';
+
+    -- El formulario de productos ya no solicita imagenes.
+    ALTER TABLE ""Productos"" DROP COLUMN IF EXISTS ""ImagenUrl"";
 END $$;";
         await db.Database.ExecuteSqlRawAsync(sql);
     }
