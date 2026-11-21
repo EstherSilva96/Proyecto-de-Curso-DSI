@@ -118,11 +118,17 @@ public class InventoryController : Controller
                 "Seleccione un tipo de movimiento válido (Entrada, Salida o Ajuste).");
         }
 
-        if (model.Cantidad <= 0)
+        if (model.Cantidad == 0)
         {
             ModelState.AddModelError(
                 nameof(MovimientoViewModel.Cantidad),
-                "La cantidad debe ser mayor que cero.");
+                "La cantidad debe ser diferente de cero.");
+        }
+        else if (model.Cantidad < 0 && model.Tipo != "Ajuste")
+        {
+            ModelState.AddModelError(
+                nameof(MovimientoViewModel.Cantidad),
+                "Las entradas y salidas requieren una cantidad mayor que cero.");
         }
 
         if (model.Tipo is "Salida" or "Ajuste" && string.IsNullOrWhiteSpace(model.Motivo))
