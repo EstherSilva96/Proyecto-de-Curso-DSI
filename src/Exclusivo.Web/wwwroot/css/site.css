@@ -252,6 +252,14 @@ body.login-body { background: #fff; }
     margin-bottom: 1rem;
     box-shadow: 0 6px 16px rgba(208,48,48,.25);
 }
+.login-logo {
+    display: block;
+    width: 190px;
+    max-width: 80%;
+    height: auto;
+    margin: 0 auto 1.25rem;
+    object-fit: contain;
+}
 .login-title { font-size: 1.5rem; font-weight: 800; color: var(--ex-oscuro); margin-bottom: .15rem; }
 .login-title::after {
     content: "";
