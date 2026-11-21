@@ -8,13 +8,13 @@ using Microsoft.EntityFrameworkCore;
 
 namespace Exclusivo.Web.Controllers;
 
-[Authorize(Roles = "Administrador")]
+[Authorize(Roles = "Admin")]
 public class UsersController : Controller
 {
     private readonly AppDbContext _db;
     private readonly AuditService _audit;
-    private static readonly string[] Roles = ["Administrador", "Gerente", "Inventario", "Vendedor", "Cajero"];
-    private string UsuarioActual => AuthService.ObtenerUsuario(HttpContext) ?? "sistema";
+    private static readonly string[] Roles = ["Admin", "Gerente", "Inventario", "Vendedor", "Cajero"];
+    private string UsuarioActual => AuthService.ObtenerUsuario(HttpContext) ?? "sys";
 
     public UsersController(AppDbContext db, AuditService audit)
     {
@@ -37,15 +37,15 @@ public class UsersController : Controller
         var nombreUsuarioLower = usuario.NombreUsuario.ToLower();
 
         if (string.IsNullOrWhiteSpace(usuario.NombreUsuario))
-            ModelState.AddModelError(nameof(Usuario.NombreUsuario), "El nombre de usuario es obligatorio.");
+            ModelState.AddModelError(nameof(Usuario.NombreUsuario), "Usr req.");
         else if (await _db.Usuarios.AnyAsync(u => (u.NombreUsuario ?? string.Empty).ToLower() == nombreUsuarioLower))
-            ModelState.AddModelError(nameof(Usuario.NombreUsuario), "Ese usuario ya existe.");
+            ModelState.AddModelError(nameof(Usuario.NombreUsuario), "Usr existe.");
 
         if (string.IsNullOrWhiteSpace(usuario.Rol) || !Roles.Contains(usuario.Rol))
-            ModelState.AddModelError(nameof(Usuario.Rol), "Seleccione un rol válido.");
+            ModelState.AddModelError(nameof(Usuario.Rol), "Rol inval.");
 
         if (string.IsNullOrWhiteSpace(clave) || clave.Trim().Length < 6)
-            ModelState.AddModelError("Clave", "La contraseña debe tener al menos 6 caracteres.");
+            ModelState.AddModelError("Clave", "Min 6 car.");
 
         if (!ModelState.IsValid)
             return Formulario(usuario);
@@ -54,8 +54,8 @@ public class UsersController : Controller
         usuario.FechaCreacion = DateTime.UtcNow;
         _db.Usuarios.Add(usuario);
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(UsuarioActual, "Crear usuario", "Usuario", usuario.Id, usuario.NombreUsuario);
-        TempData["Mensaje"] = "Usuario registrado.";
+        await _audit.RegistrarAsync(UsuarioActual, "Crear usr", "Usr", usuario.Id, usuario.NombreUsuario);
+        TempData["Mensaje"] = "Usr ok.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -80,16 +80,16 @@ public class UsersController : Controller
         var nombreUsuarioLower = usuario.NombreUsuario.ToLower();
 
         if (string.IsNullOrWhiteSpace(usuario.NombreUsuario))
-            ModelState.AddModelError(nameof(Usuario.NombreUsuario), "El nombre de usuario es obligatorio.");
+            ModelState.AddModelError(nameof(Usuario.NombreUsuario), "Usr req.");
         else if (await _db.Usuarios.AnyAsync(u =>
                      (u.NombreUsuario ?? string.Empty).ToLower() == nombreUsuarioLower && u.Id != id))
-            ModelState.AddModelError(nameof(Usuario.NombreUsuario), "Ese usuario ya existe.");
+            ModelState.AddModelError(nameof(Usuario.NombreUsuario), "Usr existe.");
 
         if (string.IsNullOrWhiteSpace(usuario.Rol) || !Roles.Contains(usuario.Rol))
-            ModelState.AddModelError(nameof(Usuario.Rol), "Seleccione un rol válido.");
+            ModelState.AddModelError(nameof(Usuario.Rol), "Rol inval.");
 
         if (!string.IsNullOrWhiteSpace(clave) && clave.Trim().Length < 6)
-            ModelState.AddModelError("Clave", "La nueva contraseña debe tener al menos 6 caracteres.");
+            ModelState.AddModelError("Clave", "Min 6 car.");
 
         if (!ModelState.IsValid)
             return Formulario(usuario);
@@ -102,8 +102,8 @@ public class UsersController : Controller
 
         _db.Usuarios.Update(usuario);
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(UsuarioActual, "Editar usuario", "Usuario", id, usuario.NombreUsuario);
-        TempData["Mensaje"] = "Usuario actualizado.";
+        await _audit.RegistrarAsync(UsuarioActual, "Edit usr", "Usr", id, usuario.NombreUsuario);
+        TempData["Mensaje"] = "Usr act.";
         return RedirectToAction(nameof(Index));
     }
 
@@ -118,11 +118,11 @@ public class UsersController : Controller
         await _db.SaveChangesAsync();
         await _audit.RegistrarAsync(
             UsuarioActual,
-            usuario.Activo ? "Activar usuario" : "Desactivar usuario",
-            "Usuario",
+            usuario.Activo ? "Act usr" : "Desact usr",
+            "Usr",
             usuario.Id,
             usuario.NombreUsuario);
-        TempData["Mensaje"] = usuario.Activo ? "Usuario activado." : "Usuario desactivado.";
+        TempData["Mensaje"] = usuario.Activo ? "Usr act." : "Usr desact.";
         return RedirectToAction(nameof(Index));
     }
 
