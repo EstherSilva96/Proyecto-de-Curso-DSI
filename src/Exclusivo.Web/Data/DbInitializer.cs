@@ -47,9 +47,8 @@ public static class DbInitializer
         var proveedor2 = new Proveedor { NombreOrganizacion = "Textiles Epic SA", Nombres = "Juan", Apellidos = "González", Ruc = "JVD-002", Telefono = "8888-2222" };
         db.Proveedores.AddRange(proveedor1, proveedor2);
 
-        var almacenCentral = new Almacen { Nombre = "Sportline", Descripcion = "Sucursal principal" };
-        var almacenCentro = new Almacen { Nombre = "GoMarcas", Descripcion = "Punto de venta centro" };
-        db.Almacenes.AddRange(almacenCentral, almacenCentro);
+        var sucursalUnica = new Almacen { Nombre = "Sucursal Masaya Absalon Store", Descripcion = "Sucursal principal" };
+        db.Almacenes.Add(sucursalUnica);
 
         var camiseta = new Producto
         {
@@ -110,14 +109,14 @@ public static class DbInitializer
         await db.SaveChangesAsync();
 
         db.Existencias.AddRange(
-            new Existencia { Almacen = almacenCentral, VarianteProducto = negraS, Cantidad = 5, Minimo = 3, Maximo = 50 },
-            new Existencia { Almacen = almacenCentral, VarianteProducto = negraM, Cantidad = 8, Minimo = 3, Maximo = 50 },
-            new Existencia { Almacen = almacenCentral, VarianteProducto = negraL, Cantidad = 3, Minimo = 3, Maximo = 50 },
-            new Existencia { Almacen = almacenCentral, VarianteProducto = azulM, Cantidad = 6, Minimo = 3, Maximo = 50 },
-            new Existencia { Almacen = almacenCentral, VarianteProducto = azulL, Cantidad = 2, Minimo = 3, Maximo = 50 },
-            new Existencia { Almacen = almacenCentral, VarianteProducto = guantesM, Cantidad = 12, Minimo = 4, Maximo = 60 },
-            new Existencia { Almacen = almacenCentral, VarianteProducto = gorraUnica, Cantidad = 10, Minimo = 3, Maximo = 40 },
-            new Existencia { Almacen = almacenCentral, VarianteProducto = jeanM, Cantidad = 7, Minimo = 3, Maximo = 40 }
+            new Existencia { Almacen = sucursalUnica, VarianteProducto = negraS, Cantidad = 5, Minimo = 3, Maximo = 50 },
+            new Existencia { Almacen = sucursalUnica, VarianteProducto = negraM, Cantidad = 8, Minimo = 3, Maximo = 50 },
+            new Existencia { Almacen = sucursalUnica, VarianteProducto = negraL, Cantidad = 3, Minimo = 3, Maximo = 50 },
+            new Existencia { Almacen = sucursalUnica, VarianteProducto = azulM, Cantidad = 6, Minimo = 3, Maximo = 50 },
+            new Existencia { Almacen = sucursalUnica, VarianteProducto = azulL, Cantidad = 2, Minimo = 3, Maximo = 50 },
+            new Existencia { Almacen = sucursalUnica, VarianteProducto = guantesM, Cantidad = 12, Minimo = 4, Maximo = 60 },
+            new Existencia { Almacen = sucursalUnica, VarianteProducto = gorraUnica, Cantidad = 10, Minimo = 3, Maximo = 40 },
+            new Existencia { Almacen = sucursalUnica, VarianteProducto = jeanM, Cantidad = 7, Minimo = 3, Maximo = 40 }
         );
 
         var cliente = new Cliente { Nombre = "Cliente General", Documento = "000-000000-0000" };
@@ -312,50 +311,83 @@ public static class DbInitializer
     }
 
     /// <summary>
-    /// Almacenes comerciales usados por el punto de venta. Los almacenes antiguos se
-    /// desactivan y su stock se migra a Sportline para no perder existencias.
+    /// El sistema administra una unica sucursal. El stock y los movimientos de los
+    /// almacenes anteriores se migran a esa sucursal antes de eliminarlos.
     /// </summary>
     private static async Task AsegurarAlmacenesAsync(AppDbContext db)
     {
-        string[] nombres = { "Sportline", "GoMarcas", "Almacenes Siman" };
-        string[] descripciones = { "Sucursal principal", "Punto de venta centro", "Almacén de distribución" };
+        const string nombreSucursal = "Sucursal Masaya Absalon Store";
 
-        var almacenes = await db.Almacenes.ToListAsync();
-        for (var i = 0; i < nombres.Length; i++)
+        var almacenes = await db.Almacenes.OrderBy(a => a.Id).ToListAsync();
+        var destino = almacenes.FirstOrDefault(
+            a => a.Nombre.Equals(nombreSucursal, StringComparison.OrdinalIgnoreCase));
+
+        if (destino is null)
         {
-            var almacen = almacenes.FirstOrDefault(a => a.Nombre.Equals(nombres[i], StringComparison.OrdinalIgnoreCase));
-            if (almacen is null)
+            destino = new Almacen
             {
-                db.Almacenes.Add(new Almacen { Nombre = nombres[i], Descripcion = descripciones[i], Activo = true });
+                Nombre = nombreSucursal,
+                Descripcion = "Sucursal principal",
+                Activo = true
+            };
+            db.Almacenes.Add(destino);
+            await db.SaveChangesAsync();
+        }
+        else
+        {
+            destino.Nombre = nombreSucursal;
+            destino.Descripcion = "Sucursal principal";
+            destino.Activo = true;
+        }
+
+        var otros = almacenes.Where(a => a.Id != destino.Id).ToList();
+        if (otros.Count == 0)
+        {
+            await db.SaveChangesAsync();
+            return;
+        }
+
+        var otrosIds = otros.Select(a => a.Id).ToList();
+
+        var existencias = await db.Existencias
+            .Where(e => e.AlmacenId == destino.Id || otrosIds.Contains(e.AlmacenId))
+            .ToListAsync();
+
+        var porVariante = existencias
+            .Where(e => e.AlmacenId == destino.Id)
+            .GroupBy(e => e.VarianteProductoId)
+            .ToDictionary(g => g.Key, g => g.First());
+
+        foreach (var existencia in existencias.Where(e => e.AlmacenId != destino.Id))
+        {
+            if (porVariante.TryGetValue(existencia.VarianteProductoId, out var destinoExistencia))
+            {
+                destinoExistencia.Cantidad += existencia.Cantidad;
+                destinoExistencia.Minimo = Math.Max(destinoExistencia.Minimo, existencia.Minimo);
+                destinoExistencia.Maximo = Math.Max(destinoExistencia.Maximo, existencia.Maximo);
+                db.Existencias.Remove(existencia);
             }
             else
             {
-                almacen.Activo = true;
+                existencia.AlmacenId = destino.Id;
+                porVariante[existencia.VarianteProductoId] = existencia;
             }
         }
-        await db.SaveChangesAsync();
 
-        var sportline = await db.Almacenes.FirstAsync(a => a.Nombre == "Sportline");
-        var antiguos = almacenes.Where(a => !nombres.Contains(a.Nombre, StringComparer.OrdinalIgnoreCase)).ToList();
-        foreach (var antiguo in antiguos)
+        var movimientos = await db.MovimientosInventario
+            .Where(m => otrosIds.Contains(m.AlmacenId)
+                || (m.AlmacenDestinoId.HasValue && otrosIds.Contains(m.AlmacenDestinoId.Value)))
+            .ToListAsync();
+
+        foreach (var movimiento in movimientos)
         {
-            var existencias = await db.Existencias.Where(e => e.AlmacenId == antiguo.Id).ToListAsync();
-            foreach (var existencia in existencias)
-            {
-                var destino = await db.Existencias.FirstOrDefaultAsync(
-                    e => e.AlmacenId == sportline.Id && e.VarianteProductoId == existencia.VarianteProductoId);
-                if (destino is null)
-                {
-                    existencia.AlmacenId = sportline.Id;
-                }
-                else
-                {
-                    destino.Cantidad += existencia.Cantidad;
-                    db.Existencias.Remove(existencia);
-                }
-            }
-            antiguo.Activo = false;
+            if (otrosIds.Contains(movimiento.AlmacenId))
+                movimiento.AlmacenId = destino.Id;
+            if (movimiento.AlmacenDestinoId.HasValue && otrosIds.Contains(movimiento.AlmacenDestinoId.Value))
+                movimiento.AlmacenDestinoId = destino.Id;
         }
+
+        db.Almacenes.RemoveRange(otros);
         await db.SaveChangesAsync();
     }
 

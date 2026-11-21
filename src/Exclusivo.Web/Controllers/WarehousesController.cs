@@ -23,12 +23,26 @@ public class WarehousesController : Controller
     public async Task<IActionResult> Index() =>
         View(await _db.Almacenes.AsNoTracking().OrderBy(a => a.Nombre).ToListAsync());
 
-    public IActionResult Create() => View("Form", new Almacen { Activo = true });
+    public async Task<IActionResult> Create()
+    {
+        if (await _db.Almacenes.AnyAsync())
+        {
+            TempData["Error"] = "El sistema administra una única sucursal.";
+            return RedirectToAction(nameof(Index));
+        }
+        return View("Form", new Almacen { Activo = true });
+    }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Almacen almacen)
     {
+        if (await _db.Almacenes.AnyAsync())
+        {
+            TempData["Error"] = "El sistema administra una única sucursal.";
+            return RedirectToAction(nameof(Index));
+        }
+
         NormalizarAlmacen(almacen);
         await ValidarAlmacenAsync(almacen, idActual: null);
 
