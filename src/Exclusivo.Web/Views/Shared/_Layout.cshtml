@@ -7,9 +7,14 @@
     var esVendedor = esGerente || rol == "Vendedor";
 
     var controller = ViewContext.RouteData.Values["controller"]?.ToString();
+    var action = ViewContext.RouteData.Values["action"]?.ToString();
     Func<string, string> activo = c => string.Equals(controller, c, StringComparison.OrdinalIgnoreCase) ? "active" : "";
+    Func<string, string, string> activoEn = (c, a) =>
+        string.Equals(controller, c, StringComparison.OrdinalIgnoreCase) &&
+        string.Equals(action, a, StringComparison.OrdinalIgnoreCase) ? "active" : "";
     var homeActivo = activo("Home");
-    var salesActivo = activo("Sales");
+    var salesCreateActivo = activoEn("Sales", "Create");
+    var salesIndexActivo = activo("Sales") == "active" && salesCreateActivo != "active" ? "active" : "";
     var customersActivo = activo("Customers");
     var inventoryActivo = activo("Inventory");
     var productsActivo = activo("Products");
@@ -48,10 +53,10 @@
             @if (esVendedor)
             {
                 <div class="app-nav-section">Ventas</div>
-                <a class="nav-link @salesActivo" asp-controller="Sales" asp-action="Create" data-sidebar-close>
+                <a class="nav-link @salesCreateActivo" asp-controller="Sales" asp-action="Create" data-sidebar-close>
                     <i class="bi bi-cart-plus"></i><span>Punto de venta</span>
                 </a>
-                <a class="nav-link @salesActivo" asp-controller="Sales" asp-action="Index" data-sidebar-close>
+                <a class="nav-link @salesIndexActivo" asp-controller="Sales" asp-action="Index" data-sidebar-close>
                     <i class="bi bi-receipt"></i><span>Ventas</span>
                 </a>
                 <a class="nav-link @customersActivo" asp-controller="Customers" asp-action="Index" data-sidebar-close>
