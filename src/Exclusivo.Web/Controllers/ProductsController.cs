@@ -35,8 +35,8 @@ public class ProductsController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(Producto producto)
     {
-        if (await _db.Productos.AnyAsync(p => p.Sku == producto.Sku))
-            ModelState.AddModelError("Sku", "Ya existe un producto con ese SKU.");
+        if (await _db.Productos.AnyAsync(p => p.Stock == producto.Stock))
+            ModelState.AddModelError("Stock", "Ya existe un producto con ese STOCK.");
         if (producto.Precio <= 0) ModelState.AddModelError("Precio", "El precio debe ser mayor que cero.");
         if (producto.Costo < 0) ModelState.AddModelError("Costo", "El costo no puede ser negativo.");
 
@@ -52,7 +52,7 @@ public class ProductsController : Controller
         });
         _db.Productos.Add(producto);
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(Usuario, "Crear producto", "Producto", producto.Id, producto.Sku);
+        await _audit.RegistrarAsync(Usuario, "Crear producto", "Producto", producto.Id, producto.Stock);
         TempData["Mensaje"] = "Producto registrado correctamente.";
         return RedirectToAction(nameof(Index));
     }
@@ -68,8 +68,8 @@ public class ProductsController : Controller
     public async Task<IActionResult> Edit(int id, Producto producto)
     {
         if (id != producto.Id) return BadRequest();
-        if (await _db.Productos.AnyAsync(p => p.Sku == producto.Sku && p.Id != id))
-            ModelState.AddModelError("Sku", "Ya existe un producto con ese SKU.");
+        if (await _db.Productos.AnyAsync(p => p.Stock == producto.Stock && p.Id != id))
+            ModelState.AddModelError("Stock", "Ya existe un producto con ese STOCK.");
         if (!ModelState.IsValid) return await FormularioAsync(producto);
 
         var original = await _db.Productos.AsNoTracking().FirstOrDefaultAsync(p => p.Id == id);
@@ -88,7 +88,7 @@ public class ProductsController : Controller
 
         _db.Productos.Update(producto);
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(Usuario, "Editar producto", "Producto", id, producto.Sku);
+        await _audit.RegistrarAsync(Usuario, "Editar producto", "Producto", id, producto.Stock);
         TempData["Mensaje"] = "Producto actualizado correctamente.";
         return RedirectToAction(nameof(Index));
     }
@@ -101,7 +101,7 @@ public class ProductsController : Controller
         if (producto is null) return NotFound();
         producto.Estado = "Descontinuado";
         await _db.SaveChangesAsync();
-        await _audit.RegistrarAsync(Usuario, "Descontinuar producto", "Producto", id, producto.Sku);
+        await _audit.RegistrarAsync(Usuario, "Descontinuar producto", "Producto", id, producto.Stock);
         TempData["Mensaje"] = "Producto descontinuado.";
         return RedirectToAction(nameof(Index));
     }

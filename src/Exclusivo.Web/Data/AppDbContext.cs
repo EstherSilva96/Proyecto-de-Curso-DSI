@@ -34,7 +34,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Proveedor>().HasIndex(p => p.NombreOrganizacion).IsUnique();
         modelBuilder.Entity<Categoria>().HasIndex(c => c.Nombre).IsUnique();
         modelBuilder.Entity<Marca>().HasIndex(m => m.Nombre).IsUnique();
-        modelBuilder.Entity<Producto>().HasIndex(p => p.Sku).IsUnique();
+        modelBuilder.Entity<Producto>().HasIndex(p => p.Stock).IsUnique();
         modelBuilder.Entity<VarianteProducto>().HasIndex(v => v.CodigoBarras);
         modelBuilder.Entity<Cliente>().HasIndex(c => c.Documento);
         modelBuilder.Entity<Venta>().HasIndex(v => v.NumeroFactura).IsUnique();

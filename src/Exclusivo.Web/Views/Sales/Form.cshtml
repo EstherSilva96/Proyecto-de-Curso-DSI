@@ -32,14 +32,14 @@
     <div class="card p-3">
         <h2 class="h5">Productos disponibles</h2>
         <table class="table table-sm align-middle">
-            <thead><tr><th>SKU</th><th>Producto</th><th>Variante</th><th class="text-end">Precio</th><th class="text-end">Stock</th><th class="text-end">Cantidad</th></tr></thead>
+            <thead><tr><th>CÓDIGO</th><th>Producto</th><th>Variante</th><th class="text-end">Precio</th><th class="text-end">Stock</th><th class="text-end">Cantidad</th></tr></thead>
             <tbody>
                 @for (var i = 0; i < variantes.Count; i++)
                 {
                     var v = variantes[i];
                     var stock = v.Existencias.Sum(e => e.Cantidad);
                     <tr>
-                        <td><small>@v.Producto.Sku</small></td>
+                        <td><small>@v.Producto.Stock</small></td>
                         <td>@v.Producto.Nombre</td>
                         <td>@v.Color / @v.Talla</td>
                         <td class="text-end">C$ @v.Producto.Precio.ToString("N2")</td>

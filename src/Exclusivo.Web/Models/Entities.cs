@@ -48,7 +48,7 @@ public class Marca
 public class Producto
 {
     public int Id { get; set; }
-    [Required, MaxLength(50)] public string Sku { get; set; } = string.Empty;
+    [Required, MaxLength(50), Display(Name = "STOCK")] public string Stock { get; set; } = string.Empty;
     [Required, MaxLength(150)] public string Nombre { get; set; } = string.Empty;
     [MaxLength(500)] public string? Descripcion { get; set; }
     public int? CategoriaId { get; set; }

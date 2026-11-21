@@ -12,6 +12,7 @@ public static class DbInitializer
         var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
 
         await db.Database.EnsureCreatedAsync();
+        await AplicarActualizacionesEsquemaAsync(db);
 
         if (await db.Usuarios.AnyAsync()) return;
 
@@ -45,7 +46,7 @@ public static class DbInitializer
 
         var camiseta = new Producto
         {
-            Sku = "CAM-NIKE-001",
+            Stock = "CAM-NIKE-001",
             Nombre = "Camiseta deportiva Nike",
             Descripcion = "Camiseta deportiva de manga corta, tejido técnico.",
             Categoria = categoriaCamisetas,
@@ -56,7 +57,7 @@ public static class DbInitializer
         };
         var guantes = new Producto
         {
-            Sku = "GUA-ADID-002",
+            Stock = "GUA-ADID-002",
             Nombre = "Guantes deportivos Adidas",
             Descripcion = "Guantes de entrenamiento.",
             Categoria = categoraAccesorios,
@@ -67,7 +68,7 @@ public static class DbInitializer
         };
         var gorra = new Producto
         {
-            Sku = "GOR-BENJ-003",
+            Stock = "GOR-BENJ-003",
             Nombre = "Gorra Benjy",
             Descripcion = "Gorra casual ajustable.",
             Categoria = categoriaGorras,
@@ -78,7 +79,7 @@ public static class DbInitializer
         };
         var jean = new Producto
         {
-            Sku = "PAN-PUMA-004",
+            Stock = "PAN-PUMA-004",
             Nombre = "Jeans Puma Z style",
             Descripcion = "Pantalón de mezclilla.",
             Categoria = categoriaPantalones,
@@ -116,5 +117,24 @@ public static class DbInitializer
         db.Clientes.Add(cliente);
         db.Configuraciones.Add(new ConfiguracionEmpresa());
         await db.SaveChangesAsync();
+    }
+
+    /// <summary>
+    /// EnsureCreated no altera una base ya existente. Este metodo aplica los cambios
+    /// de esquema de forma idempotente para que la BD local se actualice sin perder datos.
+    /// </summary>
+    private static async Task AplicarActualizacionesEsquemaAsync(AppDbContext db)
+    {
+        const string sql = @"
+DO $$
+BEGIN
+    IF EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_name = 'Productos' AND column_name = 'Sku')
+       AND NOT EXISTS (SELECT 1 FROM information_schema.columns
+               WHERE table_name = 'Productos' AND column_name = 'Stock') THEN
+        ALTER TABLE ""Productos"" RENAME COLUMN ""Sku"" TO ""Stock"";
+    END IF;
+END $$;";
+        await db.Database.ExecuteSqlRawAsync(sql);
     }
 }
