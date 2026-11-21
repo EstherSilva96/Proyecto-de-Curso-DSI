@@ -3,14 +3,50 @@ name: CI Docker
 on:
   push:
     branches: [master]
+  pull_request:
+    branches: [master]
+  workflow_dispatch:
 
 permissions:
   contents: read
-  packages: write
 
 jobs:
-  docker:
+  pruebas:
+    name: Compilar y probar
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Preparar .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restaurar dependencias
+        run: dotnet restore tests/Exclusivo.Tests/Exclusivo.Tests.csproj
+
+      - name: Compilar
+        run: dotnet build tests/Exclusivo.Tests/Exclusivo.Tests.csproj --configuration Release --no-restore
+
+      - name: Ejecutar pruebas
+        run: dotnet test tests/Exclusivo.Tests/Exclusivo.Tests.csproj --configuration Release --no-build --logger "trx;LogFileName=pruebas.trx" --results-directory TestResults
+
+      - name: Guardar resultados
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: resultados-pruebas
+          path: TestResults/*.trx
+          if-no-files-found: ignore
+
+  docker:
+    name: Publicar imagen
+    needs: pruebas
+    if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
     steps:
       - uses: actions/checkout@v4
 
